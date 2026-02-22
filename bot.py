@@ -200,7 +200,7 @@ def _chunk_lines(lines: List[str], max_len: int = 1024) -> List[str]:
 # ====== Embed branding ======
 def brand_embed(embed: discord.Embed) -> discord.Embed:
     try:
-        embed.set_author(name="BatangQuiapo War Bot")
+        embed.set_author(name="⚔️ GAMEBOUND War Bot")
     except Exception:
         pass
     return embed
@@ -213,7 +213,7 @@ def build_embed(date_str: str) -> discord.Embed:
     cap = get_cap(date_str, tier)
     
     embed = discord.Embed(
-        title="⚔️ BatangQuiapo War Attendance Sign-up",
+        title="⚔️ GAMEBOUND War Attendance Sign-up",
         description=(
             f"📅 **{date_str}** | 🏷️ **{tier}** (Cap: {cap})\n"
             f"🕘 **Event Time: 9:00 PM (GMT+8)**\n\n"
