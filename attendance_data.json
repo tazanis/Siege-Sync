@@ -1,31 +1,72 @@
 {
   "2026-02-22": {
-    "Shot Caller": [],
+    "Shot Caller": [
+      {
+        "user_id": "672807133682860033",
+        "class": "Dusa"
+      }
+    ],
     "Main Ball": [
       {
-        "user_id": "133161303488331776",
-        "class": "Dark Knight"
-      }
-    ],
-    "Flex": [],
-    "Def Team": [
+        "user_id": "391038110663835649",
+        "class": "Shai"
+      },
       {
-        "user_id": "1173177944466788369",
+        "user_id": "185397252909563914",
+        "class": "Sage"
+      },
+      {
+        "user_id": "133161303488331776",
         "class": "Dead Eye"
+      },
+      {
+        "user_id": "419856578758574082",
+        "class": "Ranger"
       }
     ],
-    "Absent": [],
+    "Flex": [
+      {
+        "user_id": "153286246007832577",
+        "class": "Musa"
+      },
+      {
+        "user_id": "510048652190810122",
+        "class": "Musa"
+      },
+      {
+        "user_id": "748207346706284624",
+        "class": "Hashasin"
+      }
+    ],
+    "Def Team": [],
+    "Absent": [
+      {
+        "user_id": "1173177944466788369"
+      },
+      {
+        "user_id": "398887016445640705"
+      }
+    ],
     "_meta": {
       "posted": true,
-      "announce_channel_id": 1474963409320677386,
-      "announce_message_id": 1474987697893544098,
+      "announce_channel_id": 1474963125261439127,
+      "announce_message_id": 1474994816466292831,
       "summarized": true,
       "summary_channel_id": 1474963409320677386,
-      "summary_message_id": 1474987699906809927
-    }
+      "summary_message_id": 1474994819486056499,
+      "tier": "T1"
+    },
+    "Reserves": []
   },
   "_users": {
-    "133161303488331776": "Dark Knight",
-    "1173177944466788369": "Dead Eye"
+    "1173177944466788369": "Dead Eye",
+    "153286246007832577": "Musa",
+    "391038110663835649": "Shai",
+    "185397252909563914": "Sage",
+    "510048652190810122": "Musa",
+    "748207346706284624": "Hashasin",
+    "672807133682860033": "Dusa",
+    "133161303488331776": "Dead Eye",
+    "419856578758574082": "Ranger"
   }
 }

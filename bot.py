@@ -30,18 +30,20 @@ if not TOKEN:
 
 
 GUILD_ID = 1323901612241981510
-ANNOUNCE_CHANNEL_ID = 1474963409320677386
+ANNOUNCE_CHANNEL_ID = 1474963125261439127
 LOG_CHANNEL_ID = 1474963409320677386
 
 # Times (GMT+8 / Asia/Manila)
 TZ = pytz.timezone("Asia/Manila")
 POST_HOUR = 12
 POST_MIN = 0
-SUMMARY_HOUR = 20
-SUMMARY_MIN = 45
+SUMMARY_HOUR = 21
+SUMMARY_MIN = 0
 
 # Roles shown as buttons
 ROLES = ["Shot Caller", "Main Ball", "Flex", "Def Team", "Absent"]
+MAIN_ROLES = ["Shot Caller", "Main Ball", "Flex", "Def Team"]
+ALL_STORED_ROLES = ROLES + ["Reserves"]
 
 # Persistence file
 DATA_FILE = Path("attendance_data.json")
@@ -128,6 +130,28 @@ def save_data() -> None:
     except Exception as e:
         log.exception("Failed saving attendance data: %s", e)
 
+def get_cap(date_str: str, tier: str) -> int:
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        wd = dt.weekday() # Mon=0, Sun=6
+        
+        # Saturday always 100
+        if wd == 5:
+            return 100
+        
+        if tier == "T2":
+            # Sun(6), Tue(1), Fri(4) -> 50
+            if wd in (6, 1, 4): return 50
+            # Mon(0), Wed(2), Thu(3) -> 40
+            return 40
+        else: # Default T1
+            # Sun(6), Tue(1), Fri(4) -> 30
+            if wd in (6, 1, 4): return 30
+            # Mon(0), Wed(2), Thu(3) -> 25
+            return 25
+    except Exception:
+        return 100
+
 def ensure_day(date_str: str) -> None:
     if date_str not in attendance_data:
         attendance_data[date_str] = {role: [] for role in ROLES}
@@ -137,8 +161,11 @@ def ensure_day(date_str: str) -> None:
             "announce_message_id": None,
             "summarized": False,
             "summary_channel_id": None,
-            "summary_message_id": None
+            "summary_message_id": None,
+            "tier": "T1"
         }
+    if "Reserves" not in attendance_data[date_str]:
+        attendance_data[date_str]["Reserves"] = []
 
 def member_mention(user_id_str: str) -> str:
     return f"<@{user_id_str}>"
@@ -181,10 +208,14 @@ def brand_embed(embed: discord.Embed) -> discord.Embed:
 # ====== Embed builder ======
 def build_embed(date_str: str) -> discord.Embed:
     ensure_day(date_str)
+    meta = attendance_data[date_str].get("_meta", {})
+    tier = meta.get("tier", "T1")
+    cap = get_cap(date_str, tier)
+    
     embed = discord.Embed(
         title="⚔️ BatangQuiapo War Attendance Sign-up",
         description=(
-            f"📅 **{date_str}**\n"
+            f"📅 **{date_str}** | 🏷️ **{tier}** (Cap: {cap})\n"
             f"🕘 **Event Time: 9:00 PM (GMT+8)**\n\n"
             f"Click a role button, then choose your class. You can only be in **one** role.\n"
             f"If you **cannot attend**, click **Absent** (red button)."
@@ -194,20 +225,23 @@ def build_embed(date_str: str) -> discord.Embed:
     )
     totals = 0
 
-    for role in ROLES:
+    # Display Main Roles + Absent
+    for role in ROLES + ["Reserves"]:
         entries = attendance_data[date_str].get(role, []) or []
-        if role != "Absent":
+        if role in MAIN_ROLES:
             totals += len(entries)
         role_emoji = ROLE_EMOJIS.get(role, "")
 
         if not entries:
+            if role == "Reserves": continue # Don't show empty reserves
             embed.add_field(name=f"{role_emoji} **{role} (0)**", value="—", inline=False)
             continue
 
-        if role == "Absent":
+        if role == "Absent" or role == "Reserves":
+            header = f"⚠️ **Reserves ({len(entries)})**" if role == "Reserves" else f"{role_emoji} **{role} ({len(entries)})**"
             lines = [member_mention(e["user_id"]) for e in entries]
             chunks = _chunk_lines(lines, max_len=1024)
-            embed.add_field(name=f"{role_emoji} **{role} ({len(entries)})**", value=chunks[0], inline=False)
+            embed.add_field(name=header, value=chunks[0], inline=False)
             for cont in chunks[1:]:
                 embed.add_field(name="\u200b", value=cont, inline=False)
             continue
@@ -261,7 +295,7 @@ class ClassSelect(discord.ui.Select):
             selected_class = self.values[0]
             ensure_day(self.date_str)
 
-            for r in ROLES:
+            for r in ALL_STORED_ROLES:
                 attendance_data[self.date_str][r] = [
                     x for x in attendance_data[self.date_str].get(r, [])
                     if x.get("user_id") != user_id
@@ -277,7 +311,11 @@ class ClassSelect(discord.ui.Select):
 
             await edit_announce_and_summary(self.date_str)
 
-            msg = f"✅ You are signed up for **{self.role_name}** as **{selected_class}**."
+            if self.role_name == "Reserves":
+                msg = f"⚠️ Cap reached. You are in **Reserves** as **{selected_class}**."
+            else:
+                msg = f"✅ You are signed up for **{self.role_name}** as **{selected_class}**."
+            
             await interaction.response.edit_message(content=msg, view=None)
 
         except Exception as e:
@@ -299,7 +337,7 @@ class RoleButton(discord.ui.Button):
             user_id = str(interaction.user.id)
             ensure_day(self.date_str)
 
-            for r in ROLES:
+            for r in ALL_STORED_ROLES:
                 attendance_data[self.date_str][r] = [
                     x for x in attendance_data[self.date_str].get(r, [])
                     if x.get("user_id") != user_id
@@ -318,17 +356,39 @@ class RoleButton(discord.ui.Button):
                     await interaction.response.send_message(msg, ephemeral=True)
                 return
 
+            # Check Cap Logic
+            meta = attendance_data[self.date_str].get("_meta", {})
+            tier = meta.get("tier", "T1")
+            cap = get_cap(self.date_str, tier)
+            
+            # Count current confirmed
+            current_confirmed = 0
+            user_already_in_main = False
+            for r in MAIN_ROLES:
+                entries = attendance_data[self.date_str].get(r, [])
+                current_confirmed += len(entries)
+                # We already removed the user from lists above, so we can't check existence there.
+                # However, we want to know if they *were* in a main role to allow class change?
+                # Actually, since we removed them, they are treated as new.
+                # But if they are just changing class, they might lose their spot if cap is full.
+                # For simplicity: strict cap check. If you click, you check cap.
+            
+            target_role = self.role_name
+            if current_confirmed >= cap:
+                target_role = "Reserves"
+
             # Check for saved class preference
             saved_class = attendance_data.get("_users", {}).get(user_id)
             if saved_class:
-                lst = attendance_data[self.date_str].setdefault(self.role_name, [])
+                lst = attendance_data[self.date_str].setdefault(target_role, [])
                 lst.append({"user_id": user_id, "class": saved_class})
-                attendance_data[self.date_str][self.role_name] = lst
+                attendance_data[self.date_str][target_role] = lst
                 save_data()
                 
                 await edit_announce_and_summary(self.date_str)
                 
-                msg = f"✅ You are signed up for **{self.role_name}** as **{saved_class}** (Auto-selected).\nTo change your class, click **🔄 Change Class** below."
+                role_msg = "Reserves" if target_role == "Reserves" else f"**{target_role}**"
+                msg = f"✅ You are signed up for {role_msg} as **{saved_class}** (Auto-selected).\nTo change your class, click **🔄 Change Class** below."
                 if interaction.response.is_done():
                     await interaction.followup.send(msg, ephemeral=True)
                 else:
@@ -339,9 +399,10 @@ class RoleButton(discord.ui.Button):
             view = discord.ui.View(timeout=120)
             for cls_type, classes in CLASS_TYPES.items():
                 opts = [discord.SelectOption(label=cls, value=cls, emoji=emoji) for cls, emoji in classes]
-                view.add_item(ClassSelect(self.role_name, self.date_str, cls_type, opts))
+                view.add_item(ClassSelect(target_role, self.date_str, cls_type, opts))
 
-            msg = f"Choose your class for **{self.role_name}**:"
+            role_msg = "Reserves (Cap Reached)" if target_role == "Reserves" else f"**{target_role}**"
+            msg = f"Choose your class for {role_msg}:"
             if interaction.response.is_done():
                 await interaction.followup.send(msg, view=view, ephemeral=True)
             else:
@@ -524,6 +585,27 @@ async def summary_cmd(interaction: discord.Interaction, date: Optional[str] = No
         await interaction.response.send_message(reply, ephemeral=True)
 
 @app_commands.guilds(discord.Object(id=GUILD_ID))
+@app_commands.describe(tier="Select T1 or T2")
+@app_commands.choices(tier=[
+    app_commands.Choice(name="T1", value="T1"),
+    app_commands.Choice(name="T2", value="T2")
+])
+@bot.tree.command(name="change_tier", description="Change the attendance cap tier (T1/T2) for today")
+async def change_tier_cmd(interaction: discord.Interaction, tier: app_commands.Choice[str]):
+    date_str = datetime.now(TZ).strftime("%Y-%m-%d")
+    ensure_day(date_str)
+    
+    attendance_data[date_str]["_meta"]["tier"] = tier.value
+    save_data()
+    await edit_announce_and_summary(date_str)
+    
+    msg = f"✅ Tier changed to **{tier.value}** for {date_str}."
+    if interaction.response.is_done():
+        await interaction.followup.send(msg, ephemeral=True)
+    else:
+        await interaction.response.send_message(msg, ephemeral=True)
+
+@app_commands.guilds(discord.Object(id=GUILD_ID))
 @bot.tree.command(name="reset_today", description="Reset today's attendance (clears all signups for today)")
 async def reset_today_cmd(interaction: discord.Interaction):
     today = datetime.now(TZ).strftime("%Y-%m-%d")
@@ -534,8 +616,10 @@ async def reset_today_cmd(interaction: discord.Interaction):
         "announce_message_id": None,
         "summarized": False,
         "summary_channel_id": None,
-        "summary_message_id": None
+        "summary_message_id": None,
+        "tier": "T1"
     }
+    attendance_data[today]["Reserves"] = []
     save_data()
     if interaction.response.is_done():
         await interaction.followup.send("✅ Today's attendance has been reset.", ephemeral=True)
