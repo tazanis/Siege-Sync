@@ -1,0 +1,31 @@
+{
+  "2026-02-22": {
+    "Shot Caller": [],
+    "Main Ball": [
+      {
+        "user_id": "133161303488331776",
+        "class": "Dark Knight"
+      }
+    ],
+    "Flex": [],
+    "Def Team": [
+      {
+        "user_id": "1173177944466788369",
+        "class": "Dead Eye"
+      }
+    ],
+    "Absent": [],
+    "_meta": {
+      "posted": true,
+      "announce_channel_id": 1474963409320677386,
+      "announce_message_id": 1474987697893544098,
+      "summarized": true,
+      "summary_channel_id": 1474963409320677386,
+      "summary_message_id": 1474987699906809927
+    }
+  },
+  "_users": {
+    "133161303488331776": "Dark Knight",
+    "1173177944466788369": "Dead Eye"
+  }
+}
