@@ -32,6 +32,8 @@ if not TOKEN:
 GUILD_ID = 1323901612241981510
 ANNOUNCE_CHANNEL_ID = 1474963125261439127
 LOG_CHANNEL_ID = 1474963409320677386
+GUILD_CHAT_ID = 1323918489110712394
+MENTION_ROLE_ID = 1356661966365655241
 
 # Times (GMT+8 / Asia/Manila)
 TZ = pytz.timezone("Asia/Manila")
@@ -47,6 +49,14 @@ ALL_STORED_ROLES = ROLES + ["Reserves"]
 
 # Persistence file
 DATA_FILE = Path("attendance_data.json")
+
+# Def Team Limits
+DEF_LIMITS = {
+    "Hwatcha Rider": 1,
+    "Flame Tower Rider": 2,
+    "Elephant Rider": 1,
+    "Builder": 20
+}
 
 # ====== CLASSES ======
 CLASSES: Dict[str, Tuple[str, Optional[str]]] = {
@@ -90,9 +100,15 @@ CLASSES: Dict[str, Tuple[str, Optional[str]]] = {
     "Woosa": ("Special", None),
     "Dusa": ("Special", None),
     "Corsair": ("Special", None),
+
+    # Defense
+    "Hwatcha Rider": ("Defense", "🚀"),
+    "Flame Tower Rider": ("Defense", "🔥"),
+    "Elephant Rider": ("Defense", "🐘"),
+    "Builder": ("Defense", "🔨"),
 }
 
-CATEGORY_ORDER = ["Fast", "Black Spirit", "Melee", "Range", "Special"]
+CATEGORY_ORDER = ["Fast", "Black Spirit", "Melee", "Range", "Special", "Defense"]
 
 CLASS_TYPES: Dict[str, List[Tuple[str, Optional[str]]]] = {}
 for cls_name, (cls_type, emoji) in CLASSES.items():
@@ -140,14 +156,14 @@ def get_cap(date_str: str, tier: str) -> int:
             return 100
         
         if tier == "T2":
-            # Sun(6), Tue(1), Fri(4) -> 50
-            if wd in (6, 1, 4): return 50
-            # Mon(0), Wed(2), Thu(3) -> 40
+            # Sun(6), Tue(1), Thu(3)
+            if wd in (6, 1, 3): return  50
+            # Mon(0), Wed(2), Fri(4) 
             return 40
         else: # Default T1
-            # Sun(6), Tue(1), Fri(4) -> 30
-            if wd in (6, 1, 4): return 30
-            # Mon(0), Wed(2), Thu(3) -> 25
+            # Sun(6), Tue(1), Thu(3)
+            if wd in (6, 1, 3): return 30
+            # Mon(0), Wed(2), Fri(4) 
             return 25
     except Exception:
         return 100
@@ -200,7 +216,7 @@ def _chunk_lines(lines: List[str], max_len: int = 1024) -> List[str]:
 # ====== Embed branding ======
 def brand_embed(embed: discord.Embed) -> discord.Embed:
     try:
-        embed.set_author(name="⚔️ GAMEBOUND War Bot")
+        embed.set_author(name="⚔️ SiegeSync")
     except Exception:
         pass
     return embed
@@ -213,7 +229,7 @@ def build_embed(date_str: str) -> discord.Embed:
     cap = get_cap(date_str, tier)
     
     embed = discord.Embed(
-        title="⚔️ GAMEBOUND War Attendance Sign-up",
+        title="⚔️ SiegeSync: War Attendance",
         description=(
             f"📅 **{date_str}** | 🏷️ **{tier}** (Cap: {cap})\n"
             f"🕘 **Event Time: 9:00 PM (GMT+8)**\n\n"
@@ -325,6 +341,52 @@ class ClassSelect(discord.ui.Select):
             else:
                 await interaction.response.send_message("❌ Error while saving your selection.", ephemeral=True)
 
+class DefRoleSelect(discord.ui.Select):
+    def __init__(self, date_str: str):
+        self.date_str = date_str
+        ensure_day(date_str)
+        
+        # Calculate availability
+        current_def = attendance_data[date_str].get("Def Team", [])
+        counts = {}
+        for entry in current_def:
+            c = entry.get("class")
+            counts[c] = counts.get(c, 0) + 1
+        
+        options = []
+        for role, limit in DEF_LIMITS.items():
+            if counts.get(role, 0) >= limit:
+                continue
+            emoji = CLASSES[role][1]
+            options.append(discord.SelectOption(label=role, emoji=emoji, value=role))
+        
+        if not options:
+            options.append(discord.SelectOption(label="Full", value="Full", description="No defense roles available"))
+
+        super().__init__(placeholder="Choose Defense Role", min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        try:
+            selected = self.values[0]
+            if selected == "Full":
+                await interaction.response.send_message("❌ All specific defense roles are full.", ephemeral=True)
+                return
+
+            user_id = str(interaction.user.id)
+            ensure_day(self.date_str)
+            
+            # Add to Def Team
+            lst = attendance_data[self.date_str].setdefault("Def Team", [])
+            lst.append({"user_id": user_id, "class": selected})
+            attendance_data[self.date_str]["Def Team"] = lst
+            save_data()
+            
+            await edit_announce_and_summary(self.date_str)
+            await interaction.response.edit_message(content=f"✅ You are signed up for **Def Team** as **{selected}**.", view=None)
+        except Exception as e:
+            log.exception("Error in DefRoleSelect: %s", e)
+            await interaction.response.send_message("❌ Error saving selection.", ephemeral=True)
+
 class RoleButton(discord.ui.Button):
     def __init__(self, role_name: str, date_str: str):
         style = discord.ButtonStyle.danger if role_name == "Absent" else discord.ButtonStyle.primary
@@ -355,6 +417,27 @@ class RoleButton(discord.ui.Button):
                 else:
                     await interaction.response.send_message(msg, ephemeral=True)
                 return
+
+            # Special handling for Def Team
+            if self.role_name == "Def Team":
+                dt_obj = datetime.strptime(self.date_str, "%Y-%m-%d")
+                is_siege = (dt_obj.weekday() == 5) # Saturday is Siege
+                current_def = attendance_data[self.date_str].get("Def Team", [])
+                
+                # Check Total Cap (5) if not Siege
+                if not is_siege and len(current_def) >= 5:
+                    # Full -> Redirect to Reserves logic below
+                    pass 
+                else:
+                    # Show Def Role Selector
+                    view = discord.ui.View(timeout=120)
+                    view.add_item(DefRoleSelect(self.date_str))
+                    msg = "🛡️ Choose your Defense Team Role:"
+                    if interaction.response.is_done():
+                        await interaction.followup.send(msg, view=view, ephemeral=True)
+                    else:
+                        await interaction.response.send_message(msg, view=view, ephemeral=True)
+                    return
 
             # Check Cap Logic
             meta = attendance_data[self.date_str].get("_meta", {})
@@ -398,6 +481,7 @@ class RoleButton(discord.ui.Button):
             # Normal roles → show class select
             view = discord.ui.View(timeout=120)
             for cls_type, classes in CLASS_TYPES.items():
+                if cls_type == "Defense": continue # Skip defense roles for normal class selection
                 opts = [discord.SelectOption(label=cls, value=cls, emoji=emoji) for cls, emoji in classes]
                 view.add_item(ClassSelect(target_role, self.date_str, cls_type, opts))
 
@@ -487,10 +571,17 @@ async def post_attendance(date_str: str) -> Optional[discord.Message]:
         if channel is None:
             log.error("Announce channel not found.")
             return None
-        msg = await channel.send(embed=embed, view=view)
+        msg = await channel.send(content="@everyone", embed=embed, view=view)
         meta["posted"] = True
         meta["announce_channel_id"] = channel.id
         meta["announce_message_id"] = msg.id
+
+        # Mention in Guild Chat
+        try:
+            if (gc := bot.get_channel(GUILD_CHAT_ID)):
+                await gc.send(f"<@&{MENTION_ROLE_ID}> Attendance is up! Please sign up in <#{ANNOUNCE_CHANNEL_ID}>")
+        except Exception:
+            log.warning("Failed to send mention to guild chat")
     except Exception:
         log.exception("Failed posting primary announce")
 

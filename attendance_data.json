@@ -3,24 +3,68 @@
     "Shot Caller": [
       {
         "user_id": "672807133682860033",
-        "class": "Dusa"
+        "class": "Scholar"
       }
     ],
     "Main Ball": [
-      {
-        "user_id": "391038110663835649",
-        "class": "Shai"
-      },
       {
         "user_id": "185397252909563914",
         "class": "Sage"
       },
       {
-        "user_id": "133161303488331776",
+        "user_id": "419856578758574082",
+        "class": "Ranger"
+      },
+      {
+        "user_id": "902873134003286047",
+        "class": "Corsair"
+      },
+      {
+        "user_id": "403209865205645316",
+        "class": "Striker"
+      },
+      {
+        "user_id": "1043172690762158161",
         "class": "Dead Eye"
       },
       {
-        "user_id": "419856578758574082",
+        "user_id": "370350559594545170",
+        "class": "Sage"
+      },
+      {
+        "user_id": "415189885268262913",
+        "class": "Warrior"
+      },
+      {
+        "user_id": "1003846509642645535",
+        "class": "Sage"
+      },
+      {
+        "user_id": "763740369514528779",
+        "class": "Shai"
+      },
+      {
+        "user_id": "1367483672332206154",
+        "class": "Dusa"
+      },
+      {
+        "user_id": "1300685183334223923",
+        "class": "Wizard"
+      },
+      {
+        "user_id": "382371727423832064",
+        "class": "Seraph"
+      },
+      {
+        "user_id": "391038110663835649",
+        "class": "Berserker"
+      },
+      {
+        "user_id": "252079302638567424",
+        "class": "Maegu"
+      },
+      {
+        "user_id": "461148264083750913",
         "class": "Ranger"
       }
     ],
@@ -36,15 +80,31 @@
       {
         "user_id": "748207346706284624",
         "class": "Hashasin"
+      },
+      {
+        "user_id": "133161303488331776",
+        "class": "Dead Eye"
+      },
+      {
+        "user_id": "364095319828463628",
+        "class": "Musa"
       }
     ],
-    "Def Team": [],
+    "Def Team": [
+      {
+        "user_id": "1029227486585827350",
+        "class": "Striker"
+      }
+    ],
     "Absent": [
       {
         "user_id": "1173177944466788369"
       },
       {
         "user_id": "398887016445640705"
+      },
+      {
+        "user_id": "785247096781537280"
       }
     ],
     "_meta": {
@@ -60,13 +120,806 @@
   },
   "_users": {
     "1173177944466788369": "Dead Eye",
-    "153286246007832577": "Musa",
-    "391038110663835649": "Shai",
-    "185397252909563914": "Sage",
     "510048652190810122": "Musa",
     "748207346706284624": "Hashasin",
-    "672807133682860033": "Dusa",
-    "133161303488331776": "Dead Eye",
-    "419856578758574082": "Ranger"
+    "419856578758574082": "Ranger",
+    "403209865205645316": "Striker",
+    "1043172690762158161": "Dead Eye",
+    "415189885268262913": "Warrior",
+    "1003846509642645535": "Sage",
+    "763740369514528779": "Shai",
+    "1367483672332206154": "Dusa",
+    "1029227486585827350": "Striker",
+    "382371727423832064": "Seraph",
+    "785247096781537280": "Wizard",
+    "252079302638567424": "Maegu",
+    "461148264083750913": "Ranger",
+    "398887016445640705": "Warrior",
+    "310748631244210176": "Witch",
+    "357746433140719618": "Archer",
+    "515581926707298306": "Ranger",
+    "1300685183334223923": "Wizard",
+    "572597982436917248": "Tamer",
+    "364705700871536640": "Maegu",
+    "867047653010833448": "Shai",
+    "693131751031177247": "Shai",
+    "153286246007832577": "Berserker",
+    "902873134003286047": "Lahn",
+    "184358348056035329": "Dead Eye",
+    "185397252909563914": "Sage",
+    "236242844841541633": "Dusa",
+    "1094950448072507472": "Witch",
+    "592598717681369089": "Dusa",
+    "1113513949275627570": "Drakania",
+    "346328710917521409": "Witch",
+    "662562086517473294": "Shai",
+    "483602536494923786": "Guardian",
+    "1451272900148723865": "Archer",
+    "240132498208587776": "Guardian",
+    "370350559594545170": "Sage",
+    "364095319828463628": "Dusa",
+    "672807133682860033": "Scholar",
+    "391038110663835649": "Berserker"
+  },
+  "2026-02-23": {
+    "Shot Caller": [
+      {
+        "user_id": "398887016445640705",
+        "class": "Warrior"
+      }
+    ],
+    "Main Ball": [
+      {
+        "user_id": "185397252909563914",
+        "class": "Sage"
+      },
+      {
+        "user_id": "419856578758574082",
+        "class": "Ranger"
+      },
+      {
+        "user_id": "1300685183334223923",
+        "class": "Woosa"
+      },
+      {
+        "user_id": "382371727423832064",
+        "class": "Seraph"
+      },
+      {
+        "user_id": "370350559594545170",
+        "class": "Sage"
+      },
+      {
+        "user_id": "902873134003286047",
+        "class": "Corsair"
+      },
+      {
+        "user_id": "461148264083750913",
+        "class": "Ranger"
+      },
+      {
+        "user_id": "403209865205645316",
+        "class": "Striker"
+      },
+      {
+        "user_id": "763740369514528779",
+        "class": "Shai"
+      },
+      {
+        "user_id": "391038110663835649",
+        "class": "Berserker"
+      }
+    ],
+    "Flex": [
+      {
+        "user_id": "133161303488331776",
+        "class": "Dead Eye"
+      },
+      {
+        "user_id": "510048652190810122",
+        "class": "Musa"
+      },
+      {
+        "user_id": "748207346706284624",
+        "class": "Hashasin"
+      },
+      {
+        "user_id": "672807133682860033",
+        "class": "Scholar"
+      },
+      {
+        "user_id": "364095319828463628",
+        "class": "Musa"
+      },
+      {
+        "user_id": "153286246007832577",
+        "class": "Maewa"
+      }
+    ],
+    "Def Team": [
+      {
+        "user_id": "415189885268262913",
+        "class": "Warrior"
+      }
+    ],
+    "Absent": [
+      {
+        "user_id": "515581926707298306"
+      }
+    ],
+    "_meta": {
+      "posted": true,
+      "announce_channel_id": 1474963125261439127,
+      "announce_message_id": 1475355735650205808,
+      "summarized": true,
+      "summary_channel_id": 1474963409320677386,
+      "summary_message_id": 1475355744022040760,
+      "tier": "T1"
+    },
+    "Reserves": []
+  },
+  "2026-02-24": {
+    "Shot Caller": [
+      {
+        "user_id": "133161303488331776",
+        "class": "Witch"
+      }
+    ],
+    "Main Ball": [
+      {
+        "user_id": "1300685183334223923",
+        "class": "Woosa"
+      },
+      {
+        "user_id": "185397252909563914",
+        "class": "Sage"
+      },
+      {
+        "user_id": "419856578758574082",
+        "class": "Ranger"
+      },
+      {
+        "user_id": "461148264083750913",
+        "class": "Ranger"
+      },
+      {
+        "user_id": "370350559594545170",
+        "class": "Sage"
+      },
+      {
+        "user_id": "403209865205645316",
+        "class": "Striker"
+      },
+      {
+        "user_id": "391038110663835649",
+        "class": "Berserker"
+      },
+      {
+        "user_id": "382371727423832064",
+        "class": "Seraph"
+      },
+      {
+        "user_id": "902873134003286047",
+        "class": "Corsair"
+      },
+      {
+        "user_id": "763740369514528779",
+        "class": "Shai"
+      },
+      {
+        "user_id": "153286246007832577",
+        "class": "Corsair"
+      },
+      {
+        "user_id": "1029227486585827350",
+        "class": "Striker"
+      },
+      {
+        "user_id": "357746433140719618",
+        "class": "Archer"
+      }
+    ],
+    "Flex": [
+      {
+        "user_id": "364095319828463628",
+        "class": "Musa"
+      },
+      {
+        "user_id": "510048652190810122",
+        "class": "Musa"
+      },
+      {
+        "user_id": "748207346706284624",
+        "class": "Hashasin"
+      },
+      {
+        "user_id": "672807133682860033",
+        "class": "Scholar"
+      }
+    ],
+    "Def Team": [
+      {
+        "user_id": "398887016445640705",
+        "class": "Warrior"
+      },
+      {
+        "user_id": "415189885268262913",
+        "class": "Warrior"
+      },
+      {
+        "user_id": "310748631244210176",
+        "class": "Witch"
+      }
+    ],
+    "Absent": [
+      {
+        "user_id": "785247096781537280"
+      },
+      {
+        "user_id": "515581926707298306"
+      }
+    ],
+    "_meta": {
+      "posted": true,
+      "announce_channel_id": 1474963125261439127,
+      "announce_message_id": 1475721568184176843,
+      "summarized": true,
+      "summary_channel_id": 1474963409320677386,
+      "summary_message_id": 1475721573657739314,
+      "tier": "T1"
+    },
+    "Reserves": []
+  },
+  "2026-02-25": {
+    "Shot Caller": [
+      {
+        "user_id": "133161303488331776",
+        "class": "Witch"
+      }
+    ],
+    "Main Ball": [
+      {
+        "user_id": "461148264083750913",
+        "class": "Ranger"
+      },
+      {
+        "user_id": "403209865205645316",
+        "class": "Striker"
+      },
+      {
+        "user_id": "185397252909563914",
+        "class": "Sage"
+      },
+      {
+        "user_id": "672807133682860033",
+        "class": "Scholar"
+      },
+      {
+        "user_id": "419856578758574082",
+        "class": "Ranger"
+      },
+      {
+        "user_id": "1300685183334223923",
+        "class": "Wizard"
+      },
+      {
+        "user_id": "370350559594545170",
+        "class": "Archer"
+      },
+      {
+        "user_id": "382371727423832064",
+        "class": "Seraph"
+      },
+      {
+        "user_id": "1029227486585827350",
+        "class": "Striker"
+      },
+      {
+        "user_id": "357746433140719618",
+        "class": "Archer"
+      },
+      {
+        "user_id": "662562086517473294",
+        "class": "Dusa"
+      },
+      {
+        "user_id": "398887016445640705",
+        "class": "Warrior"
+      }
+    ],
+    "Flex": [
+      {
+        "user_id": "510048652190810122",
+        "class": "Musa"
+      },
+      {
+        "user_id": "748207346706284624",
+        "class": "Hashasin"
+      }
+    ],
+    "Def Team": [
+      {
+        "user_id": "415189885268262913",
+        "class": "Warrior"
+      },
+      {
+        "user_id": "310748631244210176",
+        "class": "Witch"
+      },
+      {
+        "user_id": "572597982436917248",
+        "class": "Tamer"
+      },
+      {
+        "user_id": "364705700871536640",
+        "class": "Maegu"
+      },
+      {
+        "user_id": "391038110663835649",
+        "class": "Berserker"
+      },
+      {
+        "user_id": "867047653010833448",
+        "class": "Shai"
+      }
+    ],
+    "Absent": [
+      {
+        "user_id": "153286246007832577"
+      },
+      {
+        "user_id": "483602536494923786"
+      },
+      {
+        "user_id": "515581926707298306"
+      }
+    ],
+    "_meta": {
+      "posted": true,
+      "announce_channel_id": 1474963125261439127,
+      "announce_message_id": 1476066321878749446,
+      "summarized": true,
+      "summary_channel_id": 1474963409320677386,
+      "summary_message_id": 1476066329311056004,
+      "tier": "T1"
+    },
+    "Reserves": []
+  },
+  "2026-02-26": {
+    "Shot Caller": [
+      {
+        "user_id": "133161303488331776",
+        "class": "Wizard"
+      }
+    ],
+    "Main Ball": [
+      {
+        "user_id": "1300685183334223923",
+        "class": "Wizard"
+      },
+      {
+        "user_id": "672807133682860033",
+        "class": "Scholar"
+      },
+      {
+        "user_id": "185397252909563914",
+        "class": "Wizard"
+      },
+      {
+        "user_id": "902873134003286047",
+        "class": "Corsair"
+      },
+      {
+        "user_id": "403209865205645316",
+        "class": "Striker"
+      },
+      {
+        "user_id": "370350559594545170",
+        "class": "Archer"
+      },
+      {
+        "user_id": "419856578758574082",
+        "class": "Ranger"
+      },
+      {
+        "user_id": "1043172690762158161",
+        "class": "Dead Eye"
+      },
+      {
+        "user_id": "461148264083750913",
+        "class": "Ranger"
+      },
+      {
+        "user_id": "1029227486585827350",
+        "class": "Striker"
+      },
+      {
+        "user_id": "382371727423832064",
+        "class": "Seraph"
+      },
+      {
+        "user_id": "391038110663835649",
+        "class": "Berserker"
+      },
+      {
+        "user_id": "662562086517473294",
+        "class": "Dusa"
+      },
+      {
+        "user_id": "364095319828463628",
+        "class": "Warrior"
+      },
+      {
+        "user_id": "763740369514528779",
+        "class": "Shai"
+      },
+      {
+        "user_id": "184358348056035329",
+        "class": "Warrior"
+      }
+    ],
+    "Flex": [
+      {
+        "user_id": "510048652190810122",
+        "class": "Musa"
+      },
+      {
+        "user_id": "153286246007832577",
+        "class": "Ninja"
+      },
+      {
+        "user_id": "748207346706284624",
+        "class": "Hashasin"
+      }
+    ],
+    "Def Team": [
+      {
+        "user_id": "310748631244210176",
+        "class": "Witch"
+      },
+      {
+        "user_id": "572597982436917248",
+        "class": "Tamer"
+      },
+      {
+        "user_id": "415189885268262913",
+        "class": "Warrior"
+      },
+      {
+        "user_id": "364705700871536640",
+        "class": "Maegu"
+      },
+      {
+        "user_id": "867047653010833448",
+        "class": "Shai"
+      }
+    ],
+    "Absent": [
+      {
+        "user_id": "1367483672332206154"
+      },
+      {
+        "user_id": "252079302638567424"
+      }
+    ],
+    "_meta": {
+      "posted": true,
+      "announce_channel_id": 1474963125261439127,
+      "announce_message_id": 1476428793425166416,
+      "summarized": true,
+      "summary_channel_id": 1474963409320677386,
+      "summary_message_id": 1476428798877630575,
+      "tier": "T1"
+    },
+    "Reserves": [
+      {
+        "user_id": "357746433140719618",
+        "class": "Archer"
+      },
+      {
+        "user_id": "693131751031177247",
+        "class": "Shai"
+      },
+      {
+        "user_id": "515581926707298306",
+        "class": "Ranger"
+      }
+    ]
+  },
+  "2026-02-27": {
+    "Shot Caller": [
+      {
+        "user_id": "133161303488331776",
+        "class": "Wizard"
+      }
+    ],
+    "Main Ball": [
+      {
+        "user_id": "419856578758574082",
+        "class": "Ranger"
+      },
+      {
+        "user_id": "662562086517473294",
+        "class": "Dusa"
+      },
+      {
+        "user_id": "403209865205645316",
+        "class": "Striker"
+      },
+      {
+        "user_id": "1043172690762158161",
+        "class": "Dead Eye"
+      },
+      {
+        "user_id": "391038110663835649",
+        "class": "Berserker"
+      },
+      {
+        "user_id": "461148264083750913",
+        "class": "Ranger"
+      },
+      {
+        "user_id": "672807133682860033",
+        "class": "Scholar"
+      },
+      {
+        "user_id": "1029227486585827350",
+        "class": "Striker"
+      },
+      {
+        "user_id": "153286246007832577",
+        "class": "Berserker"
+      },
+      {
+        "user_id": "1300685183334223923",
+        "class": "Wizard"
+      },
+      {
+        "user_id": "370350559594545170",
+        "class": "Archer"
+      },
+      {
+        "user_id": "763740369514528779",
+        "class": "Shai"
+      },
+      {
+        "user_id": "185397252909563914",
+        "class": "Sage"
+      },
+      {
+        "user_id": "252079302638567424",
+        "class": "Maegu"
+      },
+      {
+        "user_id": "236242844841541633",
+        "class": "Dusa"
+      },
+      {
+        "user_id": "240132498208587776",
+        "class": "Drakania"
+      },
+      {
+        "user_id": "1094950448072507472",
+        "class": "Witch"
+      },
+      {
+        "user_id": "346328710917521409",
+        "class": "Guardian"
+      },
+      {
+        "user_id": "592598717681369089",
+        "class": "Dusa"
+      },
+      {
+        "user_id": "902873134003286047",
+        "class": "Lahn"
+      }
+    ],
+    "Flex": [
+      {
+        "user_id": "748207346706284624",
+        "class": "Hashasin"
+      },
+      {
+        "user_id": "510048652190810122",
+        "class": "Musa"
+      }
+    ],
+    "Def Team": [
+      {
+        "user_id": "310748631244210176",
+        "class": "Flame Tower Rider"
+      },
+      {
+        "user_id": "415189885268262913",
+        "class": "Hwatcha Rider"
+      }
+    ],
+    "Absent": [
+      {
+        "user_id": "1198208842295676928"
+      },
+      {
+        "user_id": "572597982436917248"
+      },
+      {
+        "user_id": "515581926707298306"
+      },
+      {
+        "user_id": "184358348056035329"
+      }
+    ],
+    "_meta": {
+      "posted": true,
+      "announce_channel_id": 1474963125261439127,
+      "announce_message_id": 1476816264042250302,
+      "summarized": true,
+      "summary_channel_id": 1474963409320677386,
+      "summary_message_id": 1476816271298269365,
+      "tier": "T1"
+    },
+    "Reserves": [
+      {
+        "user_id": "1163423350668922911",
+        "class": "Musa"
+      }
+    ]
+  },
+  "2026-03-01": {
+    "Shot Caller": [
+      {
+        "user_id": "133161303488331776",
+        "class": "Wizard"
+      }
+    ],
+    "Main Ball": [
+      {
+        "user_id": "1113513949275627570",
+        "class": "Drakania"
+      },
+      {
+        "user_id": "1300685183334223923",
+        "class": "Wizard"
+      },
+      {
+        "user_id": "1094950448072507472",
+        "class": "Witch"
+      },
+      {
+        "user_id": "902873134003286047",
+        "class": "Lahn"
+      },
+      {
+        "user_id": "346328710917521409",
+        "class": "Witch"
+      },
+      {
+        "user_id": "403209865205645316",
+        "class": "Striker"
+      },
+      {
+        "user_id": "153286246007832577",
+        "class": "Berserker"
+      },
+      {
+        "user_id": "1163423350668922911",
+        "class": "Musa"
+      },
+      {
+        "user_id": "662562086517473294",
+        "class": "Shai"
+      },
+      {
+        "user_id": "483602536494923786",
+        "class": "Guardian"
+      },
+      {
+        "user_id": "419856578758574082",
+        "class": "Ranger"
+      },
+      {
+        "user_id": "1451272900148723865",
+        "class": "Archer"
+      },
+      {
+        "user_id": "240132498208587776",
+        "class": "Guardian"
+      },
+      {
+        "user_id": "592598717681369089",
+        "class": "Dusa"
+      },
+      {
+        "user_id": "370350559594545170",
+        "class": "Sage"
+      },
+      {
+        "user_id": "252079302638567424",
+        "class": "Maegu"
+      },
+      {
+        "user_id": "364095319828463628",
+        "class": "Dusa"
+      },
+      {
+        "user_id": "185397252909563914",
+        "class": "Sage"
+      },
+      {
+        "user_id": "236242844841541633",
+        "class": "Dusa"
+      },
+      {
+        "user_id": "672807133682860033",
+        "class": "Scholar"
+      },
+      {
+        "user_id": "461148264083750913",
+        "class": "Ranger"
+      },
+      {
+        "user_id": "1367483672332206154",
+        "class": "Dusa"
+      },
+      {
+        "user_id": "391038110663835649",
+        "class": "Berserker"
+      },
+      {
+        "user_id": "382371727423832064",
+        "class": "Seraph"
+      },
+      {
+        "user_id": "398887016445640705",
+        "class": "Warrior"
+      }
+    ],
+    "Flex": [
+      {
+        "user_id": "510048652190810122",
+        "class": "Musa"
+      },
+      {
+        "user_id": "748207346706284624",
+        "class": "Hashasin"
+      }
+    ],
+    "Def Team": [
+      {
+        "user_id": "310748631244210176",
+        "class": "Flame Tower Rider"
+      },
+      {
+        "user_id": "415189885268262913",
+        "class": "Hwatcha Rider"
+      }
+    ],
+    "Absent": [
+      {
+        "user_id": "693131751031177247"
+      },
+      {
+        "user_id": "572597982436917248"
+      },
+      {
+        "user_id": "515581926707298306"
+      },
+      {
+        "user_id": "184358348056035329"
+      },
+      {
+        "user_id": "1029227486585827350"
+      }
+    ],
+    "_meta": {
+      "posted": true,
+      "announce_channel_id": 1474963125261439127,
+      "announce_message_id": 1477539697793437716,
+      "summarized": true,
+      "summary_channel_id": 1474963409320677386,
+      "summary_message_id": 1477539708140785675,
+      "tier": "T1"
+    },
+    "Reserves": []
   }
 }
