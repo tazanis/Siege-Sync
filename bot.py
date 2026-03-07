@@ -33,7 +33,7 @@ GUILD_ID = 1323901612241981510
 ANNOUNCE_CHANNEL_ID = 1474963125261439127
 LOG_CHANNEL_ID = 1474963409320677386
 GUILD_CHAT_ID = 1323918489110712394
-MENTION_ROLE_ID = 1356661966365655241
+MENTION_ROLE_ID = 1331307832678551722
 
 # Times (GMT+8 / Asia/Manila)
 TZ = pytz.timezone("Asia/Manila")
@@ -242,15 +242,22 @@ def build_embed(date_str: str) -> discord.Embed:
     totals = 0
 
     # Display Main Roles + Absent
-    for role in ROLES + ["Reserves"]:
+    # Layout: Shot Caller (L), Flex (R), Main Ball (L), Def Team (R)
+    display_order = ["Shot Caller", "Flex", "Main Ball", "Def Team", "Reserves", "Absent"]
+
+    for role in display_order:
         entries = attendance_data[date_str].get(role, []) or []
         if role in MAIN_ROLES:
             totals += len(entries)
         role_emoji = ROLE_EMOJIS.get(role, "")
+        
+        is_inline = role in ["Shot Caller", "Flex", "Main Ball", "Def Team"]
 
         if not entries:
             if role == "Reserves": continue # Don't show empty reserves
-            embed.add_field(name=f"{role_emoji} **{role} (0)**", value="—", inline=False)
+            embed.add_field(name=f"{role_emoji} **{role} (0)**", value="—", inline=is_inline)
+            if role == "Flex":
+                embed.add_field(name="\u200b", value="\u200b", inline=False)
             continue
 
         if role == "Absent" or role == "Reserves":
@@ -281,9 +288,12 @@ def build_embed(date_str: str) -> discord.Embed:
             all_lines = all_lines[:-1]
 
         chunks = _chunk_lines(all_lines, max_len=1024)
-        embed.add_field(name=f"{role_emoji} **{role} ({len(entries)})**", value=chunks[0], inline=False)
+        embed.add_field(name=f"{role_emoji} **{role} ({len(entries)})**", value=chunks[0], inline=is_inline)
         for cont in chunks[1:]:
-            embed.add_field(name="\u200b", value=cont, inline=False)
+            embed.add_field(name="\u200b", value=cont, inline=is_inline)
+
+        if role == "Flex":
+            embed.add_field(name="\u200b", value="\u200b", inline=False)
 
     embed.set_footer(text=f"Confirmed Attendees: {totals}")
     return brand_embed(embed)
@@ -375,6 +385,13 @@ class DefRoleSelect(discord.ui.Select):
             user_id = str(interaction.user.id)
             ensure_day(self.date_str)
             
+            # Clean user from all other roles first
+            for r in ALL_STORED_ROLES:
+                attendance_data[self.date_str][r] = [
+                    x for x in attendance_data[self.date_str].get(r, [])
+                    if x.get("user_id") != user_id
+                ]
+
             # Add to Def Team
             lst = attendance_data[self.date_str].setdefault("Def Team", [])
             lst.append({"user_id": user_id, "class": selected})
@@ -398,84 +415,86 @@ class RoleButton(discord.ui.Button):
         try:
             user_id = str(interaction.user.id)
             ensure_day(self.date_str)
-
-            for r in ALL_STORED_ROLES:
-                attendance_data[self.date_str][r] = [
-                    x for x in attendance_data[self.date_str].get(r, [])
-                    if x.get("user_id") != user_id
-                ]
-
+ 
+            # Handle Absent separately as it doesn't involve caps
             if self.role_name == "Absent":
+                # Remove from all roles first to prevent duplicates and clear previous signups
+                for r in ALL_STORED_ROLES:
+                    attendance_data[self.date_str][r] = [
+                        x for x in attendance_data[self.date_str].get(r, [])
+                        if x.get("user_id") != user_id
+                    ]
                 lst = attendance_data[self.date_str].setdefault("Absent", [])
                 lst.append({"user_id": user_id})
                 attendance_data[self.date_str]["Absent"] = lst
                 save_data()
                 await edit_announce_and_summary(self.date_str)
-                msg = "✅ Marked **Absent** for tonight."
+                msg = "✅ You have been marked as **Absent**."
                 if interaction.response.is_done():
                     await interaction.followup.send(msg, ephemeral=True)
                 else:
                     await interaction.response.send_message(msg, ephemeral=True)
                 return
 
-            # Special handling for Def Team
-            if self.role_name == "Def Team":
-                dt_obj = datetime.strptime(self.date_str, "%Y-%m-%d")
-                is_siege = (dt_obj.weekday() == 5) # Saturday is Siege
-                current_def = attendance_data[self.date_str].get("Def Team", [])
-                
-                # Check Total Cap (5) if not Siege
-                if not is_siege and len(current_def) >= 5:
-                    # Full -> Redirect to Reserves logic below
-                    pass 
-                else:
-                    # Show Def Role Selector
-                    view = discord.ui.View(timeout=120)
-                    view.add_item(DefRoleSelect(self.date_str))
-                    msg = "🛡️ Choose your Defense Team Role:"
-                    if interaction.response.is_done():
-                        await interaction.followup.send(msg, view=view, ephemeral=True)
-                    else:
-                        await interaction.response.send_message(msg, view=view, ephemeral=True)
-                    return
+            # Determine if user is already in a main role to allow role/class changes at cap
+            user_is_already_in_main = False
+            for r in MAIN_ROLES:
+                if any(e.get("user_id") == user_id for e in attendance_data[self.date_str].get(r, [])):
+                    user_is_already_in_main = True
+                    break
 
             # Check Cap Logic
             meta = attendance_data[self.date_str].get("_meta", {})
             tier = meta.get("tier", "T1")
             cap = get_cap(self.date_str, tier)
             
-            # Count current confirmed
-            current_confirmed = 0
-            user_already_in_main = False
-            for r in MAIN_ROLES:
-                entries = attendance_data[self.date_str].get(r, [])
-                current_confirmed += len(entries)
-                # We already removed the user from lists above, so we can't check existence there.
-                # However, we want to know if they *were* in a main role to allow class change?
-                # Actually, since we removed them, they are treated as new.
-                # But if they are just changing class, they might lose their spot if cap is full.
-                # For simplicity: strict cap check. If you click, you check cap.
+            current_confirmed = sum(len(attendance_data[self.date_str].get(r, [])) for r in MAIN_ROLES)
             
+            # Decide the target role (main role or Reserves)
             target_role = self.role_name
-            if current_confirmed >= cap:
+            # If cap is met AND the user is a new signup (not already in a main role), they go to reserves.
+            if self.role_name in MAIN_ROLES and current_confirmed >= cap and not user_is_already_in_main:
                 target_role = "Reserves"
 
+            # Now that we've determined their destination, remove them from all old roles.
+            for r in ALL_STORED_ROLES:
+                attendance_data[self.date_str][r] = [
+                    x for x in attendance_data[self.date_str].get(r, [])
+                    if x.get("user_id") != user_id
+                ]
+
+            # --- Special handling for Def Team (if not being sent to reserves) ---
+            if self.role_name == "Def Team" and target_role != "Reserves":
+                dt_obj = datetime.strptime(self.date_str, "%Y-%m-%d")
+                is_siege = (dt_obj.weekday() == 5) # Saturday is Siege
+                current_def = attendance_data[self.date_str].get("Def Team", [])
+                
+                # Check Def Team internal cap (5) if not Siege
+                if not is_siege and len(current_def) >= 5:
+                    # Def team is full, so they go to reserves instead.
+                    target_role = "Reserves"
+                else:
+                    # Show Def Role Selector
+                    view = discord.ui.View(timeout=120)
+                    view.add_item(DefRoleSelect(self.date_str))
+                    msg = "🛡️ Choose your Defense Team Role:"
+                    await interaction.response.send_message(msg, view=view, ephemeral=True)
+                    return
+
+            # --- Generic signup for all other roles (and Def Team that fell through to reserves) ---
+ 
             # Check for saved class preference
             saved_class = attendance_data.get("_users", {}).get(user_id)
             if saved_class:
                 lst = attendance_data[self.date_str].setdefault(target_role, [])
                 lst.append({"user_id": user_id, "class": saved_class})
-                attendance_data[self.date_str][target_role] = lst
                 save_data()
                 
                 await edit_announce_and_summary(self.date_str)
                 
                 role_msg = "Reserves" if target_role == "Reserves" else f"**{target_role}**"
                 msg = f"✅ You are signed up for {role_msg} as **{saved_class}** (Auto-selected).\nTo change your class, click **🔄 Change Class** below."
-                if interaction.response.is_done():
-                    await interaction.followup.send(msg, ephemeral=True)
-                else:
-                    await interaction.response.send_message(msg, ephemeral=True)
+                await interaction.response.send_message(msg, ephemeral=True)
                 return
 
             # Normal roles → show class select
@@ -484,14 +503,10 @@ class RoleButton(discord.ui.Button):
                 if cls_type == "Defense": continue # Skip defense roles for normal class selection
                 opts = [discord.SelectOption(label=cls, value=cls, emoji=emoji) for cls, emoji in classes]
                 view.add_item(ClassSelect(target_role, self.date_str, cls_type, opts))
-
+ 
             role_msg = "Reserves (Cap Reached)" if target_role == "Reserves" else f"**{target_role}**"
             msg = f"Choose your class for {role_msg}:"
-            if interaction.response.is_done():
-                await interaction.followup.send(msg, view=view, ephemeral=True)
-            else:
-                await interaction.response.send_message(msg, view=view, ephemeral=True)
-
+            await interaction.response.send_message(msg, view=view, ephemeral=True)
         except Exception as e:
             log.exception("Error in RoleButton.callback: %s", e)
             if interaction.response.is_done():
@@ -572,6 +587,7 @@ async def post_attendance(date_str: str) -> Optional[discord.Message]:
             log.error("Announce channel not found.")
             return None
         msg = await channel.send(content="@everyone", embed=embed, view=view)
+        log.info("Attendance posted. Message ID: %s", msg.id)
         meta["posted"] = True
         meta["announce_channel_id"] = channel.id
         meta["announce_message_id"] = msg.id
