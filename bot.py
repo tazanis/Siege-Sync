@@ -436,25 +436,43 @@ class RoleButton(discord.ui.Button):
                     await interaction.response.send_message(msg, ephemeral=True)
                 return
 
-            # Determine if user is already in a main role to allow role/class changes at cap
-            user_is_already_in_main = False
-            for r in MAIN_ROLES:
-                if any(e.get("user_id") == user_id for e in attendance_data[self.date_str].get(r, [])):
-                    user_is_already_in_main = True
-                    break
-
+            OFFENSIVE_ROLES = ["Shot Caller", "Main Ball", "Flex"]
+            
             # Check Cap Logic
             meta = attendance_data[self.date_str].get("_meta", {})
             tier = meta.get("tier", "T1")
-            cap = get_cap(self.date_str, tier)
+            total_cap = get_cap(self.date_str, tier)
             
-            current_confirmed = sum(len(attendance_data[self.date_str].get(r, [])) for r in MAIN_ROLES)
+            def_cap = 5
+            off_cap = max(0, total_cap - def_cap)
+            
+            # Calculate current counts (excluding current user to allow re-signups/swaps)
+            current_off_count = 0
+            for r in OFFENSIVE_ROLES:
+                entries = attendance_data[self.date_str].get(r, [])
+                current_off_count += len([e for e in entries if e.get("user_id") != user_id])
+            
+            current_def_count = len([e for e in attendance_data[self.date_str].get("Def Team", []) if e.get("user_id") != user_id])
             
             # Decide the target role (main role or Reserves)
             target_role = self.role_name
-            # If cap is met AND the user is a new signup (not already in a main role), they go to reserves.
-            if self.role_name in MAIN_ROLES and current_confirmed >= cap and not user_is_already_in_main:
-                target_role = "Reserves"
+
+            # 1. Shot Caller Unique Limit
+            if self.role_name == "Shot Caller":
+                sc_entries = attendance_data[self.date_str].get("Shot Caller", [])
+                if any(e.get("user_id") != user_id for e in sc_entries):
+                    await interaction.response.send_message("❌ **Shot Caller** role is limited to 1 person and is already taken.", ephemeral=True)
+                    return
+
+            # 2. Offensive Roles Cap
+            if self.role_name in OFFENSIVE_ROLES:
+                if current_off_count >= off_cap:
+                    target_role = "Reserves"
+            
+            # 3. Def Team Cap
+            elif self.role_name == "Def Team":
+                if current_def_count >= def_cap:
+                    target_role = "Reserves"
 
             # Now that we've determined their destination, remove them from all old roles.
             for r in ALL_STORED_ROLES:
@@ -465,21 +483,12 @@ class RoleButton(discord.ui.Button):
 
             # --- Special handling for Def Team (if not being sent to reserves) ---
             if self.role_name == "Def Team" and target_role != "Reserves":
-                dt_obj = datetime.strptime(self.date_str, "%Y-%m-%d")
-                is_siege = (dt_obj.weekday() == 5) # Saturday is Siege
-                current_def = attendance_data[self.date_str].get("Def Team", [])
-                
-                # Check Def Team internal cap (5) if not Siege
-                if not is_siege and len(current_def) >= 5:
-                    # Def team is full, so they go to reserves instead.
-                    target_role = "Reserves"
-                else:
-                    # Show Def Role Selector
-                    view = discord.ui.View(timeout=120)
-                    view.add_item(DefRoleSelect(self.date_str))
-                    msg = "🛡️ Choose your Defense Team Role:"
-                    await interaction.response.send_message(msg, view=view, ephemeral=True)
-                    return
+                # Show Def Role Selector
+                view = discord.ui.View(timeout=120)
+                view.add_item(DefRoleSelect(self.date_str))
+                msg = "🛡️ Choose your Defense Team Role:"
+                await interaction.response.send_message(msg, view=view, ephemeral=True)
+                return
 
             # --- Generic signup for all other roles (and Def Team that fell through to reserves) ---
  
