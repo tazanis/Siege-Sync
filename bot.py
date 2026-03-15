@@ -11,7 +11,7 @@ from typing import Dict, List, Tuple, Optional
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 import logging
 
@@ -24,20 +24,27 @@ log = logging.getLogger("attendance-bot")
 
 load_dotenv()
 
+def get_env_var_as_int(name: str) -> int:
+    """Gets an environment variable and casts it to an integer, raising an error if it's missing or invalid."""
+    val = os.getenv(name)
+    if not val or not val.isdigit():
+        raise RuntimeError(f"Required environment variable '{name}' is missing or not a valid integer.")
+    return int(val)
+
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 if not TOKEN:
-    raise RuntimeError("Please set the DISCORD_BOT_TOKEN environment variable before running the bot.")
+    raise RuntimeError("Required environment variable 'DISCORD_BOT_TOKEN' is missing.")
 
 
-GUILD_ID = 1323901612241981510
-ANNOUNCE_CHANNEL_ID = 1474963125261439127
-LOG_CHANNEL_ID = 1474963409320677386
-GUILD_CHAT_ID = 1323918489110712394
-MENTION_ROLE_ID = 1331307832678551722
+GUILD_ID = get_env_var_as_int("GUILD_ID")
+ANNOUNCE_CHANNEL_ID = get_env_var_as_int("ANNOUNCE_CHANNEL_ID")
+LOG_CHANNEL_ID = get_env_var_as_int("LOG_CHANNEL_ID")
+GUILD_CHAT_ID = get_env_var_as_int("GUILD_CHAT_ID")
+MENTION_ROLE_ID = get_env_var_as_int("MENTION_ROLE_ID")
 
 # Times (GMT+8 / Asia/Manila)
 TZ = pytz.timezone("Asia/Manila")
-POST_HOUR = 12
+POST_HOUR = 22
 POST_MIN = 0
 SUMMARY_HOUR = 21
 SUMMARY_MIN = 0
@@ -55,36 +62,36 @@ DEF_LIMITS = {
     "Hwatcha Rider": 1,
     "Flame Tower Rider": 2,
     "Elephant Rider": 1,
-    "Builder": 20
+    "Builder": 1
 }
 
 # ====== CLASSES ======
 CLASSES: Dict[str, Tuple[str, Optional[str]]] = {
-    # Black Spirit
-    "Berserker": ("Black Spirit", None),
-    "Valkyrie": ("Black Spirit", None),
-    "Warrior": ("Black Spirit", None),
-    "Wukong": ("Black Spirit", None),
-    "Seraph": ("Black Spirit", None),
-
-    # Fast
-    "Dead Eye": ("Fast", None),
-    "Musa": ("Fast", None),
-    "Sage": ("Fast", None),
-    "Maewa": ("Fast", None),
-    "Ninja": ("Fast", None),
-    "Kunoichi": ("Fast", None),
-    "Hashasin": ("Fast", None),
-    "Mystic": ("Fast", None),
-    "Striker": ("Fast", None),
-    "Sorceress": ("Fast", None),
-
+    # Flex (formerly Fast)
+    "Dead Eye": ("Flex", None),
+    "Musa": ("Flex", None),
+    "Maehwa": ("Flex", None),
+    "Ninja": ("Flex", None),
+    "Kunoichi": ("Flex", None),
+    "Hashasin": ("Flex", None),
+    "Sorceress": ("Flex", None),
+ 
     # Melee
     "Nova": ("Melee", None),
-    "Lahn": ("Melee", None),
     "Drakania": ("Melee", None),
     "Dark Knight": ("Melee", None),
     "Guardian": ("Melee", None),
+    "Warrior": ("Melee", None),
+    "Wukong": ("Melee", None),
+    "Seraph": ("Melee", None),
+    "Striker": ("Melee", None),
+    "Mystic": ("Melee", None),
+    "Sage": ("Melee", None),
+    "Scholar": ("Melee", None),
+    "Tamer": ("Melee", None),
+    "Woosa": ("Melee", None),
+    "Dusa": ("Melee", None),
+
 
     # Range
     "Archer": ("Range", None),
@@ -95,11 +102,9 @@ CLASSES: Dict[str, Tuple[str, Optional[str]]] = {
 
     # Special
     "Shai": ("Special", None),
-    "Scholar": ("Special", None),
-    "Tamer": ("Special", None),
-    "Woosa": ("Special", None),
-    "Dusa": ("Special", None),
-    "Corsair": ("Special", None),
+    "Berserker": ("Special", None),
+    "Valkyrie": ("Special", None),
+     "Corsair": ("Special", None),
 
     # Defense
     "Hwatcha Rider": ("Defense", "🚀"),
@@ -108,7 +113,7 @@ CLASSES: Dict[str, Tuple[str, Optional[str]]] = {
     "Builder": ("Defense", "🔨"),
 }
 
-CATEGORY_ORDER = ["Fast", "Black Spirit", "Melee", "Range", "Special", "Defense"]
+CATEGORY_ORDER = ["Flex", "Melee", "Range", "Special", "Defense"]
 
 CLASS_TYPES: Dict[str, List[Tuple[str, Optional[str]]]] = {}
 for cls_name, (cls_type, emoji) in CLASSES.items():
@@ -168,6 +173,17 @@ def get_cap(date_str: str, tier: str) -> int:
     except Exception:
         return 100
 
+def is_attendance_locked(date_str: str) -> bool:
+    """Checks if attendance for a given date is locked (i.e., it's past 9 PM)."""
+    try:
+        now = datetime.now(TZ)
+        lock_time = TZ.localize(datetime.strptime(date_str, "%Y-%m-%d")).replace(
+            hour=SUMMARY_HOUR, minute=SUMMARY_MIN, second=0, microsecond=0
+        )
+        return now >= lock_time
+    except Exception:
+        return False
+
 def ensure_day(date_str: str) -> None:
     if date_str not in attendance_data:
         attendance_data[date_str] = {role: [] for role in ROLES}
@@ -178,12 +194,23 @@ def ensure_day(date_str: str) -> None:
             "summarized": False,
             "summary_channel_id": None,
             "summary_message_id": None,
-            "tier": "T1"
+            "tier": "T1",
+            "locked": False
         }
     if "Reserves" not in attendance_data[date_str]:
         attendance_data[date_str]["Reserves"] = []
+    if "locked" not in attendance_data[date_str].get("_meta", {}):
+        attendance_data[date_str]["_meta"]["locked"] = False
 
 def member_mention(user_id_str: str) -> str:
+    try:
+        guild = bot.get_guild(GUILD_ID)
+        if guild:
+            member = guild.get_member(int(user_id_str))
+            if member:
+                return member.display_name
+    except Exception:
+        pass
     return f"<@{user_id_str}>"
 
 # ====== formatting helpers ======
@@ -262,7 +289,7 @@ def build_embed(date_str: str) -> discord.Embed:
 
         if role == "Absent" or role == "Reserves":
             header = f"⚠️ **Reserves ({len(entries)})**" if role == "Reserves" else f"{role_emoji} **{role} ({len(entries)})**"
-            lines = [member_mention(e["user_id"]) for e in entries]
+            lines = [e.get("name") or member_mention(e["user_id"]) for e in entries]
             chunks = _chunk_lines(lines, max_len=1024)
             embed.add_field(name=header, value=chunks[0], inline=False)
             for cont in chunks[1:]:
@@ -282,7 +309,8 @@ def build_embed(date_str: str) -> discord.Embed:
                 continue
             all_lines.append(f"{cat} Classes:")
             for m in members:
-                all_lines.append(f"{m.get('class','Unknown')} → {member_mention(m['user_id'])}")
+                disp_name = m.get("name") or member_mention(m["user_id"])
+                all_lines.append(f"{m.get('class','Unknown')} → {disp_name}")
             all_lines.append("")
         if all_lines and all_lines[-1] == "":
             all_lines = all_lines[:-1]
@@ -317,6 +345,10 @@ class ClassSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         try:
+            if is_attendance_locked(self.date_str):
+                await interaction.response.send_message("❌ Attendance for this date is now closed.", ephemeral=True)
+                return
+
             user_id = str(interaction.user.id)
             selected_class = self.values[0]
             ensure_day(self.date_str)
@@ -328,7 +360,7 @@ class ClassSelect(discord.ui.Select):
                 ]
 
             lst = attendance_data[self.date_str].setdefault(self.role_name, [])
-            lst.append({"user_id": user_id, "class": selected_class})
+            lst.append({"user_id": user_id, "class": selected_class, "name": interaction.user.display_name})
             attendance_data[self.date_str][self.role_name] = lst
 
             # Save user preference
@@ -377,6 +409,10 @@ class DefRoleSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         try:
+            if is_attendance_locked(self.date_str):
+                await interaction.response.send_message("❌ Attendance for this date is now closed.", ephemeral=True)
+                return
+
             selected = self.values[0]
             if selected == "Full":
                 await interaction.response.send_message("❌ All specific defense roles are full.", ephemeral=True)
@@ -394,7 +430,7 @@ class DefRoleSelect(discord.ui.Select):
 
             # Add to Def Team
             lst = attendance_data[self.date_str].setdefault("Def Team", [])
-            lst.append({"user_id": user_id, "class": selected})
+            lst.append({"user_id": user_id, "class": selected, "name": interaction.user.display_name})
             attendance_data[self.date_str]["Def Team"] = lst
             save_data()
             
@@ -413,6 +449,10 @@ class RoleButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         try:
+            if is_attendance_locked(self.date_str):
+                await interaction.response.send_message("❌ Attendance for this date is now closed.", ephemeral=True)
+                return
+
             user_id = str(interaction.user.id)
             ensure_day(self.date_str)
  
@@ -425,7 +465,7 @@ class RoleButton(discord.ui.Button):
                         if x.get("user_id") != user_id
                     ]
                 lst = attendance_data[self.date_str].setdefault("Absent", [])
-                lst.append({"user_id": user_id})
+                lst.append({"user_id": user_id, "name": interaction.user.display_name})
                 attendance_data[self.date_str]["Absent"] = lst
                 save_data()
                 await edit_announce_and_summary(self.date_str)
@@ -496,7 +536,7 @@ class RoleButton(discord.ui.Button):
             saved_class = attendance_data.get("_users", {}).get(user_id)
             if saved_class:
                 lst = attendance_data[self.date_str].setdefault(target_role, [])
-                lst.append({"user_id": user_id, "class": saved_class})
+                lst.append({"user_id": user_id, "class": saved_class, "name": interaction.user.display_name})
                 save_data()
                 
                 await edit_announce_and_summary(self.date_str)
@@ -554,7 +594,7 @@ class AttendanceView(discord.ui.View):
 async def edit_announce_and_summary(date_str: str) -> None:
     ensure_day(date_str)
     embed = build_embed(date_str)
-    view = AttendanceView(date_str)
+    view = AttendanceView(date_str) 
     meta = attendance_data[date_str].setdefault("_meta", {})
 
     # primary
@@ -733,7 +773,8 @@ async def reset_today_cmd(interaction: discord.Interaction):
         "summarized": False,
         "summary_channel_id": None,
         "summary_message_id": None,
-        "tier": "T1"
+        "tier": "T1",
+        "locked": False
     }
     attendance_data[today]["Reserves"] = []
     save_data()
@@ -750,19 +791,35 @@ async def scheduler():
     ensure_day(date_str)
     meta = attendance_data.get(date_str, {}).get("_meta", {})
 
-    # Auto post
-    if now.hour == POST_HOUR and now.minute == POST_MIN:
-        if not meta.get("posted", False):
-            await post_attendance(date_str)
-            meta["posted"] = True
-            save_data()
+    # Auto post for tomorrow at 10 PM
+    if now.hour >= POST_HOUR:
+        tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+        ensure_day(tomorrow)
+        tom_meta = attendance_data[tomorrow]["_meta"]
+        if not tom_meta.get("posted", False):
+            await post_attendance(tomorrow)
 
-    # Auto summary
-    if now.hour == SUMMARY_HOUR and now.minute == SUMMARY_MIN:
+    # Auto summary and lock for today at 9 PM
+    if now.hour >= SUMMARY_HOUR:
         if not meta.get("summarized", False):
             await post_summary(date_str)
             meta["summarized"] = True
             save_data()
+
+        if not meta.get("locked", False):
+            try:
+                ch_id = meta.get("announce_channel_id")
+                msg_id = meta.get("announce_message_id")
+                if ch_id and msg_id:
+                    ch = bot.get_channel(int(ch_id))
+                    if ch:
+                        msg = await ch.fetch_message(int(msg_id))
+                        await msg.edit(view=None)
+                        log.info("Locked attendance for %s by removing buttons.", date_str)
+                meta["locked"] = True
+                save_data()
+            except Exception as e:
+                log.exception("Failed locking attendance: %s", e)
 
     # Weekly reset of user preferences (Sunday at 00:00)
     if now.weekday() == 6 and now.hour == 0 and now.minute == 0:
@@ -824,5 +881,4 @@ async def on_ready():
 
 # ====== Run ======
 if __name__ == "__main__":
-    load_data()
     bot.run(TOKEN)

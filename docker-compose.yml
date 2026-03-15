@@ -1,0 +1,9 @@
+services:
+  attendance-bot:
+    build: .
+    container_name: war_attendance_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./attendance_data.json:/app/attendance_data.json
