@@ -240,14 +240,6 @@ def _chunk_lines(lines: List[str], max_len: int = 1024) -> List[str]:
         chunks.append("\n".join(cur_lines))
     return chunks
 
-# ====== Embed branding ======
-def brand_embed(embed: discord.Embed) -> discord.Embed:
-    try:
-        embed.set_author(name="⚔️ SiegeSync")
-    except Exception:
-        pass
-    return embed
-
 # ====== Embed builder ======
 def build_embed(date_str: str) -> discord.Embed:
     ensure_day(date_str)
@@ -259,9 +251,7 @@ def build_embed(date_str: str) -> discord.Embed:
         title="⚔️ SiegeSync: War Attendance",
         description=(
             f"📅 **{date_str}** | 🏷️ **{tier}** (Cap: {cap})\n"
-            f"🕘 **Event Time: 9:00 PM (GMT+8)**\n\n"
-            f"Click a role button, then choose your class. You can only be in **one** role.\n"
-            f"If you **cannot attend**, click **Absent** (red button)."
+            f"🕘 **Event Time: 9:00 PM (GMT+8)**"
         ),
         color=discord.Color.blurple(),
         timestamp=datetime.now(TZ)
@@ -324,7 +314,7 @@ def build_embed(date_str: str) -> discord.Embed:
             embed.add_field(name="\u200b", value="\u200b", inline=False)
 
     embed.set_footer(text=f"Confirmed Attendees: {totals}")
-    return brand_embed(embed)
+    return embed
 
 # ====== Bot setup ======
 intents = discord.Intents.default()
