@@ -783,6 +783,31 @@ async def reset_today_cmd(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("✅ Today's attendance has been reset.", ephemeral=True)
 
+@app_commands.guilds(discord.Object(id=GUILD_ID))
+@bot.tree.command(name="post_tomorrow", description="Manually post the attendance sheet for the next day.")
+async def post_tomorrow_cmd(interaction: discord.Interaction):
+    """Manually posts the attendance for the next day, e.g., if a war ends early."""
+    tomorrow_str = (datetime.now(TZ) + timedelta(days=1)).strftime("%Y-%m-%d")
+    ensure_day(tomorrow_str)
+
+    meta = attendance_data[tomorrow_str].get("_meta", {})
+    if meta.get("posted", False):
+        msg = f"ℹ️ Attendance for tomorrow ({tomorrow_str}) has already been posted."
+        await interaction.response.send_message(msg, ephemeral=True)
+        return
+
+    try:
+        await post_attendance(tomorrow_str)
+        msg = f"✅ Attendance posted for tomorrow: {tomorrow_str}."
+    except Exception as e:
+        log.exception("Error in /post_tomorrow: %s", e)
+        msg = f"❌ Failed to post attendance for {tomorrow_str}."
+
+    if interaction.response.is_done():
+        await interaction.followup.send(msg, ephemeral=True)
+    else:
+        await interaction.response.send_message(msg, ephemeral=True)
+
 # ====== Scheduler (auto-post/summary) ======
 @tasks.loop(minutes=1)
 async def scheduler():
