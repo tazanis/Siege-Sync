@@ -48,6 +48,8 @@ POST_HOUR = 22
 POST_MIN = 0
 SUMMARY_HOUR = 21
 SUMMARY_MIN = 0
+YES_UP_HOUR = 19 # 7 PM
+YES_UP_MIN = 30
 
 # Roles shown as buttons
 ROLES = ["Shot Caller", "Main Ball", "Flex", "Def Team", "Absent"]
@@ -195,12 +197,15 @@ def ensure_day(date_str: str) -> None:
             "summary_channel_id": None,
             "summary_message_id": None,
             "tier": "T1",
-            "locked": False
+            "locked": False,
+            "yes_up_announced": False
         }
     if "Reserves" not in attendance_data[date_str]:
         attendance_data[date_str]["Reserves"] = []
     if "locked" not in attendance_data[date_str].get("_meta", {}):
         attendance_data[date_str]["_meta"]["locked"] = False
+    if "yes_up_announced" not in attendance_data[date_str].get("_meta", {}):
+        attendance_data[date_str]["_meta"]["yes_up_announced"] = False
 
 def member_mention(user_id_str: str) -> str:
     try:
@@ -764,7 +769,8 @@ async def reset_today_cmd(interaction: discord.Interaction):
         "summary_channel_id": None,
         "summary_message_id": None,
         "tier": "T1",
-        "locked": False
+        "locked": False,
+        "yes_up_announced": False
     }
     attendance_data[today]["Reserves"] = []
     save_data()
@@ -805,6 +811,39 @@ async def scheduler():
     date_str = now.strftime("%Y-%m-%d")
     ensure_day(date_str)
     meta = attendance_data.get(date_str, {}).get("_meta", {})
+
+    # Announce "yes up" at 7:30 PM
+    if now.hour == YES_UP_HOUR and now.minute == YES_UP_MIN:
+        if not meta.get("yes_up_announced", False):
+            try:
+                log.info("Running 'yes up' announcement task.")
+                channel = bot.get_channel(ANNOUNCE_CHANNEL_ID)
+                if channel:
+                    secured_users_ids = []
+                    for role in MAIN_ROLES:
+                        entries = attendance_data[date_str].get(role, [])
+                        for entry in entries:
+                            secured_users_ids.append(entry["user_id"])
+
+                    if secured_users_ids:
+                        await channel.send("You can now yes up in-game (Please notify officers if we are not queued up)")
+
+                        mentions = [f"<@{uid}>" for uid in secured_users_ids]
+                        message_body = ""
+                        for mention in mentions:
+                            if len(message_body) + len(mention) + 1 > 1900:
+                                await channel.send(message_body)
+                                message_body = ""
+                            message_body += f"{mention}\n"
+                        
+                        if message_body:
+                            await channel.send(message_body)
+
+                    meta["yes_up_announced"] = True
+                    save_data()
+                    log.info("'Yes up' announcement sent.")
+            except Exception as e:
+                log.exception("Error during 'yes up' announcement task: %s", e)
 
     # Auto post for tomorrow at 10 PM
     if now.hour >= POST_HOUR:
