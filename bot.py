@@ -75,8 +75,9 @@ CLASSES: Dict[str, Tuple[str, Optional[str]]] = {
     "Maehwa": ("Flex", None),
     "Ninja": ("Flex", None),
     "Kunoichi": ("Flex", None),
-    "Hashasin": ("Flex", None),
+    "Hashashin": ("Flex", None),
     "Sorceress": ("Flex", None),
+    "Lahn": ("Flex", None),
  
     # Melee
     "Nova": ("Melee", None),
