@@ -35,7 +35,6 @@ TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("Required environment variable 'DISCORD_BOT_TOKEN' is missing.")
 
-
 GUILD_ID = get_env_var_as_int("GUILD_ID")
 ANNOUNCE_CHANNEL_ID = get_env_var_as_int("ANNOUNCE_CHANNEL_ID")
 LOG_CHANNEL_ID = get_env_var_as_int("LOG_CHANNEL_ID")
@@ -95,7 +94,6 @@ CLASSES: Dict[str, Tuple[str, Optional[str]]] = {
     "Woosa": ("Melee", None),
     "Dusa": ("Melee", None),
 
-
     # Range
     "Archer": ("Range", None),
     "Ranger": ("Range", None),
@@ -107,7 +105,7 @@ CLASSES: Dict[str, Tuple[str, Optional[str]]] = {
     "Shai": ("Special", None),
     "Berserker": ("Special", None),
     "Valkyrie": ("Special", None),
-     "Corsair": ("Special", None),
+    "Corsair": ("Special", None),
 
     # Defense
     "Hwatcha Rider": ("Defense", "🚀"),
@@ -165,7 +163,7 @@ def get_cap(date_str: str, tier: str) -> int:
         
         if tier == "T2":
             # Sun(6), Tue(1), Thu(3)
-            if wd in (6, 1, 3): return  50
+            if wd in (6, 1, 3): return 50
             # Mon(0), Wed(2), Fri(4) 
             return 40
         else: # Default T1
@@ -264,8 +262,6 @@ def build_embed(date_str: str) -> discord.Embed:
     )
     totals = 0
 
-    # Display Main Roles + Absent
-    # Layout: Shot Caller (L), Flex (R), Main Ball (L), Def Team (R)
     display_order = ["Shot Caller", "Flex", "Main Ball", "Def Team", "Reserves", "Absent"]
 
     for role in display_order:
@@ -277,7 +273,7 @@ def build_embed(date_str: str) -> discord.Embed:
         is_inline = role in ["Shot Caller", "Flex", "Main Ball", "Def Team"]
 
         if not entries:
-            if role == "Reserves": continue # Don't show empty reserves
+            if role == "Reserves": continue 
             embed.add_field(name=f"{role_emoji} **{role} (0)**", value="—", inline=is_inline)
             if role == "Flex":
                 embed.add_field(name="\u200b", value="\u200b", inline=False)
@@ -384,7 +380,6 @@ class DefRoleSelect(discord.ui.Select):
         self.date_str = date_str
         ensure_day(date_str)
         
-        # Calculate availability
         current_def = attendance_data[date_str].get("Def Team", [])
         counts = {}
         for entry in current_def:
@@ -417,14 +412,12 @@ class DefRoleSelect(discord.ui.Select):
             user_id = str(interaction.user.id)
             ensure_day(self.date_str)
             
-            # Clean user from all other roles first
             for r in ALL_STORED_ROLES:
                 attendance_data[self.date_str][r] = [
                     x for x in attendance_data[self.date_str].get(r, [])
                     if x.get("user_id") != user_id
                 ]
 
-            # Add to Def Team
             lst = attendance_data[self.date_str].setdefault("Def Team", [])
             lst.append({"user_id": user_id, "class": selected, "name": interaction.user.display_name})
             attendance_data[self.date_str]["Def Team"] = lst
@@ -452,9 +445,7 @@ class RoleButton(discord.ui.Button):
             user_id = str(interaction.user.id)
             ensure_day(self.date_str)
  
-            # Handle Absent separately as it doesn't involve caps
             if self.role_name == "Absent":
-                # Remove from all roles first to prevent duplicates and clear previous signups
                 for r in ALL_STORED_ROLES:
                     attendance_data[self.date_str][r] = [
                         x for x in attendance_data[self.date_str].get(r, [])
@@ -474,7 +465,6 @@ class RoleButton(discord.ui.Button):
 
             OFFENSIVE_ROLES = ["Shot Caller", "Main Ball", "Flex"]
             
-            # Check Cap Logic
             meta = attendance_data[self.date_str].get("_meta", {})
             tier = meta.get("tier", "T1")
             total_cap = get_cap(self.date_str, tier)
@@ -482,7 +472,6 @@ class RoleButton(discord.ui.Button):
             def_cap = 5
             off_cap = max(0, total_cap - def_cap)
             
-            # Calculate current counts (excluding current user to allow re-signups/swaps)
             current_off_count = 0
             for r in OFFENSIVE_ROLES:
                 entries = attendance_data[self.date_str].get(r, [])
@@ -490,45 +479,35 @@ class RoleButton(discord.ui.Button):
             
             current_def_count = len([e for e in attendance_data[self.date_str].get("Def Team", []) if e.get("user_id") != user_id])
             
-            # Decide the target role (main role or Reserves)
             target_role = self.role_name
 
-            # 1. Shot Caller Unique Limit
             if self.role_name == "Shot Caller":
                 sc_entries = attendance_data[self.date_str].get("Shot Caller", [])
                 if any(e.get("user_id") != user_id for e in sc_entries):
                     await interaction.response.send_message("❌ **Shot Caller** role is limited to 1 person and is already taken.", ephemeral=True)
                     return
 
-            # 2. Offensive Roles Cap
             if self.role_name in OFFENSIVE_ROLES:
                 if current_off_count >= off_cap:
                     target_role = "Reserves"
             
-            # 3. Def Team Cap
             elif self.role_name == "Def Team":
                 if current_def_count >= def_cap:
                     target_role = "Reserves"
 
-            # Now that we've determined their destination, remove them from all old roles.
             for r in ALL_STORED_ROLES:
                 attendance_data[self.date_str][r] = [
                     x for x in attendance_data[self.date_str].get(r, [])
                     if x.get("user_id") != user_id
                 ]
 
-            # --- Special handling for Def Team (if not being sent to reserves) ---
             if self.role_name == "Def Team" and target_role != "Reserves":
-                # Show Def Role Selector
                 view = discord.ui.View(timeout=120)
                 view.add_item(DefRoleSelect(self.date_str))
                 msg = "🛡️ Choose your Defense Team Role:"
                 await interaction.response.send_message(msg, view=view, ephemeral=True)
                 return
-
-            # --- Generic signup for all other roles (and Def Team that fell through to reserves) ---
  
-            # Check for saved class preference
             saved_class = attendance_data.get("_users", {}).get(user_id)
             if saved_class:
                 lst = attendance_data[self.date_str].setdefault(target_role, [])
@@ -542,10 +521,9 @@ class RoleButton(discord.ui.Button):
                 await interaction.response.send_message(msg, ephemeral=True)
                 return
 
-            # Normal roles → show class select
             view = discord.ui.View(timeout=120)
             for cls_type, classes in CLASS_TYPES.items():
-                if cls_type == "Defense": continue # Skip defense roles for normal class selection
+                if cls_type == "Defense": continue 
                 opts = [discord.SelectOption(label=cls, value=cls, emoji=emoji) for cls, emoji in classes]
                 view.add_item(ClassSelect(target_role, self.date_str, cls_type, opts))
  
@@ -598,7 +576,7 @@ async def edit_announce_and_summary(date_str: str) -> None:
         ch_id = meta.get("announce_channel_id")
         msg_id = meta.get("announce_message_id")
         if ch_id and msg_id:
-            ch = bot.get_channel(int(ch_id))
+            ch = bot.get_channel(int(ch_id)) or await bot.fetch_channel(int(ch_id))
             if ch:
                 msg = await ch.fetch_message(int(msg_id))
                 await msg.edit(embed=embed, view=view)
@@ -610,7 +588,7 @@ async def edit_announce_and_summary(date_str: str) -> None:
         s_ch = meta.get("summary_channel_id")
         s_msg = meta.get("summary_message_id")
         if s_ch and s_msg:
-            chs = bot.get_channel(int(s_ch))
+            chs = bot.get_channel(int(s_ch)) or await bot.fetch_channel(int(s_ch))
             if chs:
                 msg_s = await chs.fetch_message(int(s_msg))
                 await msg_s.edit(content=f"📊 Attendance Summary for **{date_str}**", embed=embed)
@@ -625,30 +603,52 @@ async def post_attendance(date_str: str) -> Optional[discord.Message]:
     view = AttendanceView(date_str)
     meta = attendance_data[date_str].setdefault("_meta", {})
 
+    # Use fetch_channel fallback in case cache is completely empty on bot restart
+    channel = bot.get_channel(ANNOUNCE_CHANNEL_ID)
+    if not channel:
+        try:
+            channel = await bot.fetch_channel(ANNOUNCE_CHANNEL_ID)
+        except Exception:
+            pass
+
+    if channel is None:
+        log.error("Announce channel not found. Check the ID and Bot View Channel permissions.")
+        return None
+
     # primary
     try:
-        channel = bot.get_channel(ANNOUNCE_CHANNEL_ID)
-        if channel is None:
-            log.error("Announce channel not found.")
-            return None
         msg = await channel.send(content="@everyone", embed=embed, view=view)
         log.info("Attendance posted. Message ID: %s", msg.id)
         meta["posted"] = True
         meta["announce_channel_id"] = channel.id
         meta["announce_message_id"] = msg.id
+    except Exception as e:
+        log.exception(f"Failed posting primary announce to channel {ANNOUNCE_CHANNEL_ID}: {e}")
+        return None  # Early return ensures we don't send the guild mention if the embed failed!
 
-        # Mention in Guild Chat
-        try:
-            if (gc := bot.get_channel(GUILD_CHAT_ID)):
-                await gc.send(f"<@&{MENTION_ROLE_ID}> Attendance is up! Please sign up in <#{ANNOUNCE_CHANNEL_ID}>")
-        except Exception:
-            log.warning("Failed to send mention to guild chat")
-    except Exception:
-        log.exception("Failed posting primary announce")
+    # Mention in Guild Chat
+    try:
+        gc = bot.get_channel(GUILD_CHAT_ID)
+        if not gc:
+            try:
+                gc = await bot.fetch_channel(GUILD_CHAT_ID)
+            except Exception:
+                pass
+                
+        if gc:
+            await gc.send(f"<@&{MENTION_ROLE_ID}> Attendance is up! Please sign up in <#{ANNOUNCE_CHANNEL_ID}>")
+    except Exception as e:
+        log.warning(f"Failed to send mention to guild chat: {e}")
 
     # summary in log channel
     try:
         log_chan = bot.get_channel(LOG_CHANNEL_ID)
+        if not log_chan:
+            try:
+                log_chan = await bot.fetch_channel(LOG_CHANNEL_ID)
+            except Exception:
+                pass
+        
         if log_chan:
             summary_msg = await log_chan.send(content=f"📊 Attendance Summary for **{date_str}**", embed=embed)
             meta["summarized"] = True
@@ -671,12 +671,18 @@ async def post_summary(date_str: str) -> Optional[discord.Message]:
     ensure_day(date_str)
     embed = build_embed(date_str)
     meta = attendance_data[date_str].setdefault("_meta", {})
+    
     log_chan = bot.get_channel(LOG_CHANNEL_ID)
+    if not log_chan:
+        try:
+            log_chan = await bot.fetch_channel(LOG_CHANNEL_ID)
+        except Exception:
+            pass
+
     if log_chan is None:
         log.error("Log channel not found for summary.")
         return None
 
-    # Try to edit existing summary message, otherwise send new and store id
     try:
         if meta.get("summary_message_id") and meta.get("summary_channel_id") == log_chan.id:
             msg = await log_chan.fetch_message(int(meta["summary_message_id"]))
@@ -687,18 +693,24 @@ async def post_summary(date_str: str) -> Optional[discord.Message]:
     except Exception:
         log.warning("Could not edit existing summary message, will post a new one.")
 
-    msg = await log_chan.send(content=f"📊 Attendance Summary for **{date_str}**", embed=embed)
-    meta["summary_channel_id"] = log_chan.id
-    meta["summary_message_id"] = msg.id
-    meta["summarized"] = True
-    save_data()
-    return msg
+    try:
+        msg = await log_chan.send(content=f"📊 Attendance Summary for **{date_str}**", embed=embed)
+        meta["summary_channel_id"] = log_chan.id
+        meta["summary_message_id"] = msg.id
+        meta["summarized"] = True
+        save_data()
+        return msg
+    except Exception:
+        return None
 
 # ====== Slash commands ======
 @app_commands.guilds(discord.Object(id=GUILD_ID))
 @bot.tree.command(name="post_now", description="Post today's attendance sign-up to the announcement channel")
 async def post_now_cmd(interaction: discord.Interaction):
+    # Defer to prevent the "Interaction Failed" timeout message
+    await interaction.response.defer(ephemeral=True)
     date_str = datetime.now(TZ).strftime("%Y-%m-%d")
+    
     try:
         await post_attendance(date_str)
         msg = f"✅ Attendance posted for {date_str}."
@@ -706,35 +718,28 @@ async def post_now_cmd(interaction: discord.Interaction):
         log.exception("Error in /post_now: %s", e)
         msg = f"❌ Failed to post attendance for {date_str}."
 
-    # Always reply
-    if interaction.response.is_done():
-        await interaction.followup.send(msg, ephemeral=True)
-    else:
-        await interaction.response.send_message(msg, ephemeral=True)
+    await interaction.followup.send(msg, ephemeral=True)
 
 @app_commands.guilds(discord.Object(id=GUILD_ID))
 @app_commands.describe(date="Optional: YYYY-MM-DD (default: today)")
 @bot.tree.command(name="summary", description="Post or update the attendance summary in the log channel")
 async def summary_cmd(interaction: discord.Interaction, date: Optional[str] = None):
+    await interaction.response.defer(ephemeral=True)
     if date is None:
         date = datetime.now(TZ).strftime("%Y-%m-%d")
     try:
         datetime.strptime(date, "%Y-%m-%d")
     except ValueError:
-        if interaction.response.is_done():
-            await interaction.followup.send("❌ Date must be YYYY-MM-DD.", ephemeral=True)
-        else:
-            await interaction.response.send_message("❌ Date must be YYYY-MM-DD.", ephemeral=True)
+        await interaction.followup.send("❌ Date must be YYYY-MM-DD.", ephemeral=True)
         return
+        
     msg = await post_summary(date)
     if msg:
         reply = f"✅ Summary for **{date}** posted/updated in the log channel."
     else:
         reply = "❌ Could not post summary (check permissions/channels)."
-    if interaction.response.is_done():
-        await interaction.followup.send(reply, ephemeral=True)
-    else:
-        await interaction.response.send_message(reply, ephemeral=True)
+        
+    await interaction.followup.send(reply, ephemeral=True)
 
 @app_commands.guilds(discord.Object(id=GUILD_ID))
 @app_commands.describe(tier="Select T1 or T2")
@@ -744,6 +749,7 @@ async def summary_cmd(interaction: discord.Interaction, date: Optional[str] = No
 ])
 @bot.tree.command(name="change_tier", description="Change the attendance cap tier (T1/T2) for today")
 async def change_tier_cmd(interaction: discord.Interaction, tier: app_commands.Choice[str]):
+    await interaction.response.defer(ephemeral=True)
     date_str = datetime.now(TZ).strftime("%Y-%m-%d")
     ensure_day(date_str)
     
@@ -752,14 +758,12 @@ async def change_tier_cmd(interaction: discord.Interaction, tier: app_commands.C
     await edit_announce_and_summary(date_str)
     
     msg = f"✅ Tier changed to **{tier.value}** for {date_str}."
-    if interaction.response.is_done():
-        await interaction.followup.send(msg, ephemeral=True)
-    else:
-        await interaction.response.send_message(msg, ephemeral=True)
+    await interaction.followup.send(msg, ephemeral=True)
 
 @app_commands.guilds(discord.Object(id=GUILD_ID))
 @bot.tree.command(name="reset_today", description="Reset today's attendance (clears all signups for today)")
 async def reset_today_cmd(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
     today = datetime.now(TZ).strftime("%Y-%m-%d")
     attendance_data[today] = {role: [] for role in ROLES}
     attendance_data[today]["_meta"] = {
@@ -775,22 +779,20 @@ async def reset_today_cmd(interaction: discord.Interaction):
     }
     attendance_data[today]["Reserves"] = []
     save_data()
-    if interaction.response.is_done():
-        await interaction.followup.send("✅ Today's attendance has been reset.", ephemeral=True)
-    else:
-        await interaction.response.send_message("✅ Today's attendance has been reset.", ephemeral=True)
+    await interaction.followup.send("✅ Today's attendance has been reset.", ephemeral=True)
 
 @app_commands.guilds(discord.Object(id=GUILD_ID))
 @bot.tree.command(name="post_tomorrow", description="Manually post the attendance sheet for the next day.")
 async def post_tomorrow_cmd(interaction: discord.Interaction):
     """Manually posts the attendance for the next day, e.g., if a war ends early."""
+    await interaction.response.defer(ephemeral=True)
     tomorrow_str = (datetime.now(TZ) + timedelta(days=1)).strftime("%Y-%m-%d")
     ensure_day(tomorrow_str)
 
     meta = attendance_data[tomorrow_str].get("_meta", {})
     if meta.get("posted", False):
         msg = f"ℹ️ Attendance for tomorrow ({tomorrow_str}) has already been posted."
-        await interaction.response.send_message(msg, ephemeral=True)
+        await interaction.followup.send(msg, ephemeral=True)
         return
 
     try:
@@ -800,10 +802,7 @@ async def post_tomorrow_cmd(interaction: discord.Interaction):
         log.exception("Error in /post_tomorrow: %s", e)
         msg = f"❌ Failed to post attendance for {tomorrow_str}."
 
-    if interaction.response.is_done():
-        await interaction.followup.send(msg, ephemeral=True)
-    else:
-        await interaction.response.send_message(msg, ephemeral=True)
+    await interaction.followup.send(msg, ephemeral=True)
 
 # ====== Scheduler (auto-post/summary) ======
 @tasks.loop(minutes=1)
@@ -813,12 +812,17 @@ async def scheduler():
     ensure_day(date_str)
     meta = attendance_data.get(date_str, {}).get("_meta", {})
 
-    # Announce "yes up" at 7:30 PM
     if now.hour == YES_UP_HOUR and now.minute == YES_UP_MIN:
         if not meta.get("yes_up_announced", False):
             try:
                 log.info("Running 'yes up' announcement task.")
                 channel = bot.get_channel(ANNOUNCE_CHANNEL_ID)
+                if not channel:
+                    try:
+                        channel = await bot.fetch_channel(ANNOUNCE_CHANNEL_ID)
+                    except Exception:
+                        pass
+                
                 if channel:
                     secured_users_ids = []
                     for role in MAIN_ROLES:
@@ -846,7 +850,6 @@ async def scheduler():
             except Exception as e:
                 log.exception("Error during 'yes up' announcement task: %s", e)
 
-    # Auto post for tomorrow at 10 PM
     if now.hour >= POST_HOUR:
         tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
         ensure_day(tomorrow)
@@ -854,7 +857,6 @@ async def scheduler():
         if not tom_meta.get("posted", False):
             await post_attendance(tomorrow)
 
-    # Auto summary and lock for today at 9 PM
     if now.hour >= SUMMARY_HOUR:
         if not meta.get("summarized", False):
             await post_summary(date_str)
@@ -867,6 +869,11 @@ async def scheduler():
                 msg_id = meta.get("announce_message_id")
                 if ch_id and msg_id:
                     ch = bot.get_channel(int(ch_id))
+                    if not ch:
+                        try:
+                            ch = await bot.fetch_channel(int(ch_id))
+                        except Exception:
+                            pass
                     if ch:
                         msg = await ch.fetch_message(int(msg_id))
                         await msg.edit(view=None)
@@ -876,7 +883,6 @@ async def scheduler():
             except Exception as e:
                 log.exception("Failed locking attendance: %s", e)
 
-    # Weekly reset of user preferences (Sunday at 00:00)
     if now.weekday() == 6 and now.hour == 0 and now.minute == 0:
         if attendance_data.get("_users"):
             attendance_data["_users"] = {}
@@ -889,7 +895,6 @@ async def on_ready():
     log.info("Bot starting up: loading data and registering views")
     load_data()
 
-    # Add persistent views for any date that already has a posted announce message
     for date_str, data in list(attendance_data.items()):
         try:
             meta = data.get("_meta", {})
@@ -898,23 +903,19 @@ async def on_ready():
         except Exception as e:
             log.exception("Error re-adding view for %s: %s", date_str, e)
 
-    # Also add today's view so buttons work even before posting
     today = datetime.now(TZ).strftime("%Y-%m-%d")
     ensure_day(today)
     bot.add_view(AttendanceView(today))
 
-    # start scheduler
     if not scheduler.is_running():
         scheduler.start()
 
-    # Sync commands: sync to guild (instant) and attempt global sync
     try:
         guild = discord.Object(id=GUILD_ID)
         bot.tree.copy_global_to(guild=guild)
         await bot.tree.sync(guild=guild)
         log.info("✅ Synced commands to guild %s", GUILD_ID)
 
-        # Also attempt global sync (may take up to an hour to propagate)
         await bot.tree.sync()
         log.info("🌍 Synced commands globally")
     except Exception as e:
@@ -922,17 +923,14 @@ async def on_ready():
 
     log.info("✅ Logged in as %s (id=%s)", bot.user, bot.user.id)
 
-    # Print invite link for easy setup
     invite_url = f"https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot%20applications.commands"
     log.info("🔗 If the bot is not in your server, invite it using this link:\n   %s", invite_url)
     
-    # Debug: Verify channel visibility
     chk_channel = bot.get_channel(ANNOUNCE_CHANNEL_ID)
     if chk_channel:
         log.info("✅ Announce Channel found: #%s in %s", chk_channel.name, chk_channel.guild.name)
     else:
-        log.error("❌ Announce Channel (ID: %s) NOT found. Ensure the ID is correct and the bot is in the server.", ANNOUNCE_CHANNEL_ID)
-        log.info("   I am currently in these guilds: %s", ", ".join([f"{g.name} ({g.id})" for g in bot.guilds]))
+        log.warning("⚠️ Announce Channel (ID: %s) NOT found in cache right now. Will attempt to fetch via API when needed.", ANNOUNCE_CHANNEL_ID)
 
 # ====== Run ======
 if __name__ == "__main__":
