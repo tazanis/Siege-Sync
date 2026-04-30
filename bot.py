@@ -162,9 +162,9 @@ def get_cap(date_str: str, tier: str) -> int:
             return 100
         
         if tier == "T2":
-            # Sun(6), Tue(1), Thu(3)
-            if wd in (6, 1, 3): return 50
-            # Mon(0), Wed(2), Fri(4) 
+            # Sun(6), Friday(4)
+            if wd in (6, 4): return 50
+            # Mon(0), Tue(1), Wed(2), Thu(3)
             return 40
         else: # Default T1
             # Sun(6), Tue(1), Thu(3)
