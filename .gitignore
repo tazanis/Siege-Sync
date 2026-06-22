@@ -8,3 +8,4 @@ __pycache__/
 .git
 .gitignore
 .env
+attendance_data.json

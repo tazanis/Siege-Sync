@@ -63,7 +63,8 @@ DEF_LIMITS = {
     "Hwatcha Rider": 1,
     "Flame Tower Rider": 2,
     "Elephant Rider": 1,
-    "Builder": 1
+    "Builder": 1,
+    "Flag Bearer": 1
 }
 
 # ====== CLASSES ======
@@ -112,6 +113,7 @@ CLASSES: Dict[str, Tuple[str, Optional[str]]] = {
     "Flame Tower Rider": ("Defense", "🔥"),
     "Elephant Rider": ("Defense", "🐘"),
     "Builder": ("Defense", "🔨"),
+    "Flag Bearer": ("Defense", "🚩"),
 }
 
 CATEGORY_ORDER = ["Flex", "Melee", "Range", "Special", "Defense"]
@@ -151,6 +153,31 @@ def save_data() -> None:
         DATA_FILE.write_text(json.dumps(attendance_data, indent=2, ensure_ascii=False), encoding="utf-8")
     except Exception as e:
         log.exception("Failed saving attendance data: %s", e)
+
+def prune_old_data(days_to_keep: int = 3):
+    """Removes attendance data older than a specified number of days to prevent file bloat."""
+    global attendance_data
+    if not attendance_data:
+        return
+
+    today = datetime.now(TZ).date()
+    to_delete = []
+    
+    for date_str in attendance_data.keys():
+        if date_str == "_users":
+            continue
+        try:
+            entry_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            if (today - entry_date).days > days_to_keep:
+                to_delete.append(date_str)
+        except (ValueError, TypeError):
+            continue # Ignore keys that are not valid dates
+
+    if to_delete:
+        log.info(f"Pruning {len(to_delete)} attendance entries older than {days_to_keep} days...")
+        for date_str in to_delete:
+            del attendance_data[date_str]
+        save_data()
 
 def get_cap(date_str: str, tier: str) -> int:
     try:
@@ -469,7 +496,7 @@ class RoleButton(discord.ui.Button):
             tier = meta.get("tier", "T1")
             total_cap = get_cap(self.date_str, tier)
             
-            def_cap = 5
+            def_cap = 6
             off_cap = max(0, total_cap - def_cap)
             
             current_off_count = 0
@@ -808,6 +835,11 @@ async def post_tomorrow_cmd(interaction: discord.Interaction):
 @tasks.loop(minutes=1)
 async def scheduler():
     now = datetime.now(TZ)
+
+    # Run daily cleanup just after midnight to prune old data
+    if now.hour == 0 and now.minute == 1:
+        prune_old_data(days_to_keep=3)
+
     date_str = now.strftime("%Y-%m-%d")
     ensure_day(date_str)
     meta = attendance_data.get(date_str, {}).get("_meta", {})
@@ -894,6 +926,9 @@ async def scheduler():
 async def on_ready():
     log.info("Bot starting up: loading data and registering views")
     load_data()
+
+    # Clean up old data on startup
+    prune_old_data(days_to_keep=3)
 
     for date_str, data in list(attendance_data.items()):
         try:
